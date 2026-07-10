@@ -1,0 +1,23 @@
+CARA ENABLE DEBUG LOGGING WORDPRESS:
+
+1. Buka file wp-config.php di root folder WordPress
+   (biasanya di: D:\Project\CLIENT\yiari-donasi\wp-config.php)
+
+2. Cari baris yang mengandung WP_DEBUG dan ubah menjadi:
+
+define('WP_DEBUG', true);
+define('WP_DEBUG_LOG', true);
+define('WP_DEBUG_DISPLAY', false);
+
+3. Jika tidak ada, tambahkan baris di atas SEBELUM baris:
+   /* That's all, stop editing! Happy publishing. */
+
+4. Save file wp-config.php
+
+5. Debug log akan tersimpan di:
+   /wp-content/debug.log
+
+6. Untuk melihat log real-time, bisa gunakan:
+   - Notepad++ dengan auto-refresh
+   - tail -f /path/to/wp-content/debug.log (jika di Linux)
+   - Browser developer tools dengan network monitoring

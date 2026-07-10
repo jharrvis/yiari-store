@@ -1,0 +1,279 @@
+#lightboxOverlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    /* Warna overlay dengan opacity */
+    z-index: 1000;
+}
+
+#lightboxContent {
+    font-size: 14px;
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    /* Lebar lightbox */
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+    z-index: 1001;
+    /* z-index: 2147483641; */
+    /* Pastikan lightbox berada di atas overlay */
+}
+
+#lightboxContent h2 {
+    margin-top: 0;
+}
+
+#lightboxContent form div {
+    margin-bottom: 15px;
+}
+
+#lightboxContent label {
+    display: block;
+    font-weight: bold;
+}
+
+#lightboxContent input[type="text"],
+#lightboxContent input[type="email"],
+#lightboxContent input[type="tel"],
+#lightboxContent select {
+    width: 100%;
+    padding: 8px;
+    /* border: 1px solid #ccc; */
+    /* border-radius: 4px; */
+    /* box-sizing: border-box; */
+}
+
+#lightboxContent button {
+    padding: 10px 20px;
+    background-color: #4CAF50;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+#lightboxContent button:hover {
+    background-color: #45a049;
+}
+
+#closeButton {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: 20px;
+    cursor: pointer;
+}
+
+/* .container{
+    width: 100%;
+    height: 100vh;
+    position: relative;
+}
+.box{
+    position: absolute;
+    transform: translate(-50% , -50%);
+    width: 350px;
+    background-color: #fff;
+    padding: 20px 30px;
+    box-shadow: 0px 4px 30px -10px rgb(0 0 0);
+} */
+.box{
+    text-align: center;
+    /* font-size: 40px; */
+}
+
+.box form .input_box{
+    width: 100%;
+    border: 1px solid #333333;
+    border-radius: 4px;
+    margin-top: 15px;
+    position: relative;
+}
+.box form .input_box input{
+    width: 100%;
+    border: none;
+    outline: none;
+    /* font-size: 20px; */
+    padding: 10px;
+    background: transparent;
+}
+.box form .input_box label{
+    position: absolute;
+    left: 0px;
+    /* font-size: 20px; */
+    font-weight: 600;
+    top: 8px;
+    pointer-events: none;
+    transition: 0.2s;
+    left: 10px;
+    background: #dee1e3;
+    padding: 0 8px;
+}
+
+.box form .input_box input:focus + label,
+.box form .input_box input:valid + label{
+    top: -15px;
+    /* font-size: 18px; */
+    /* color: blue; */
+}
+
+.box form .input_box input[type="text"]:focus, 
+.box form .input_box input[type="number"]:focus, 
+.box form .input_box input[type="email"]:focus, 
+.box form .input_box input[type="password"]:focus, 
+.box form .input_box textarea:focus, 
+input:-internal-autofill-selected {
+    background-color: transparent; /* Ganti warna latar belakang saat mendapatkan fokus */
+    outline: none; /* Hilangkan outline bawaan browser */
+}
+
+#donationForm {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+}
+
+#donationForm .form-column {
+    flex: 0 0 48%; /* Lebar kolom 48% */
+    margin-bottom: 20px; /* Jarak antar kolom */
+}
+
+#donationForm .form-column div {
+    margin-bottom: 10px; /* Jarak antar elemen dalam kolom */
+}
+
+#donationForm .form-column label {
+    display: block;
+    /* font-weight: bold; */
+    margin-bottom: 5px;
+}
+
+#donationForm .form-column input,
+#donationForm .form-column select {
+    width: 100%;
+    font-size: 15px;
+    font-weight: 500;
+    /* padding: 8px; */
+    /* border: 1px solid #ccc; */
+    /* border-radius: 4px; */
+}
+
+.button-container {
+    margin-top: 20px; /* Jarak antara kolom formulir dan tombol */
+}
+
+.button-container button {
+    padding: 20px 30px;
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bolder;
+}
+
+.button-container button:hover {
+    background-color: #0056b3;
+}
+
+
+/* Gaya umum untuk input box */
+.input-wrapper {
+    position: relative;
+    width: 100%;
+    border: 1px solid #333333;
+    border-radius: 4px;
+}
+
+.number-input {
+    padding: 15px 35px;
+    width: 100%; /* Sesuaikan lebar sesuai kebutuhan */
+    background: transparent;
+    border: none;
+    font-size: 2em;
+    color: #333333;
+}
+
+/* Gaya untuk prefix */
+.prefix {
+    position: absolute;
+    left: 10px; /* Jarak dari kiri */
+    top: 50%;
+    transform: translateY(-50%);
+    color: #666; /* Warna teks prefix */
+    font-weight: bold;
+}
+
+/* Gaya untuk suffix */
+.suffix {
+    position: absolute;
+    right: 10px; /* Jarak dari kanan */
+    top: 50%;
+    transform: translateY(-50%);
+    color: #666; /* Warna teks suffix */
+    font-weight: bold;
+}
+
+/* Gaya untuk container radio group */
+.radio-group {
+    margin-top: 15px;
+    width: 100%;
+    display: flex; /* Menggunakan flexbox untuk menyusun secara horizontal */
+}
+
+/* Gaya untuk input radio */
+.radio-group input[type="radio"] {
+    display: none; /* Sembunyikan input radio bawaan */
+}
+
+/* Gaya untuk label radio */
+.radio-group label {
+    position: relative;
+    flex: 1; /* Membuat label menyesuaikan lebar secara merata */
+    padding: 8px 36px;
+    background-color: #f0f0f0;
+    border: 1px solid #333333;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+/* Memberikan margin-right hanya pada label pertama */
+.radio-group label:first-of-type {
+    margin-right: 10px; /* Jarak antara tombol pertama dan kedua */
+}
+
+/* Gaya untuk ikon atau checkbox */
+.radio-group label::before {
+    content: ""; /* Menambahkan konten sebelum label */
+    position: absolute; /* Membuat posisi absolut */
+    top: 50%; /* Posisikan vertikal ke tengah */
+    left: 10px; /* Jarak dari kiri */
+    transform: translateY(-50%); /* Geser vertikal setengah tinggi elemen */
+    width: 16px; /* Lebar ikon atau checkbox */
+    height: 16px; /* Tinggi ikon atau checkbox */
+    border: 1px solid #ccc; /* Gaya border ikon atau checkbox */
+    border-radius: 50%; /* Untuk checkbox, membuat bentuk bulat */
+}
+
+/* Gaya untuk ikon atau checkbox yang dipilih */
+.radio-group input[type="radio"]:checked + label::before {
+    background-color: #007bff; /* Warna latar belakang saat dipilih */
+}
+
+/* Gaya untuk label radio yang dipilih */
+.radio-group input[type="radio"]:checked + label {
+    background-color: #f0f0f0; /* Warna latar belakang saat dipilih */
+    border-color: #007bff; /* Warna border saat dipilih */
+    color: #007bff; /* Warna teks saat dipilih */
+}
+
+
