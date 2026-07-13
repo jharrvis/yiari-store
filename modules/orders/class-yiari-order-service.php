@@ -29,13 +29,19 @@ class YIARI_Order_Service {
 
         $selected_items = $this->build_order_items($checkout_data);
         $self_item_count = 0;
+        $donation_item_count = 0;
         $total_weight = 0;
 
         foreach ($selected_items as $item) {
             if ($item['fulfillment_type'] === 'self_purchase') {
                 $self_item_count += $item['qty'];
             }
-            $total_weight += $item['weight_grams_snapshot'] * $item['qty'];
+            if ($item['fulfillment_type'] === 'donation_purchase') {
+                $donation_item_count += $item['qty'];
+            }
+            if (!empty($item['requires_shipping'])) {
+                $total_weight += $item['weight_grams_snapshot'] * $item['qty'];
+            }
         }
 
         $payment_status = isset($options['payment_status'])
@@ -63,8 +69,8 @@ class YIARI_Order_Service {
             'total_amount' => $checkout_data['gross_amount'] ?? 0,
             'total_weight_grams' => $total_weight,
             'self_book_count' => $self_item_count,
-            'donation_book_count' => intval($checkout_data['donation_book_count'] ?? 0),
-            'contains_donation_items' => empty($checkout_data['donation_book_count']) ? 0 : 1,
+            'donation_book_count' => $donation_item_count,
+            'contains_donation_items' => $donation_item_count > 0 ? 1 : 0,
             'donation_motivation_code' => $checkout_data['donation_motivation_code'] ?? null,
             'donation_motivation_other' => $checkout_data['donation_motivation_other'] ?? null,
             'payment_gateway' => 'midtrans',
@@ -220,6 +226,32 @@ class YIARI_Order_Service {
                 'requires_shipping' => 1,
                 'donation_recipient_type' => null,
                 'metadata' => wp_json_encode(array('qty_key' => $selected['qty_key'])),
+            );
+        }
+
+        $donation_count = intval($checkout_data['donation_book_count'] ?? 0);
+        if ($donation_count > 0 && !empty($selected_products)) {
+            $base_product = $selected_products[0]['product'];
+            $currency = $checkout_data['currency'] ?? 'IDR';
+            $unit_price = ($currency === 'USD')
+                ? floatval($base_product->price_usd ?? 0)
+                : floatval($base_product->price_idr ?? 0);
+
+            $items[] = array(
+                'product_id' => isset($base_product->id) ? intval($base_product->id) : 0,
+                'sku_snapshot' => $base_product->sku ?? ('LEGACY-' . strtoupper(sanitize_title($base_product->name))),
+                'product_name_snapshot' => $base_product->name . ' Donation',
+                'qty' => $donation_count,
+                'unit_price_amount' => $unit_price,
+                'line_total_amount' => $unit_price * $donation_count,
+                'weight_grams_snapshot' => intval($base_product->weight_grams ?? 0),
+                'fulfillment_type' => 'donation_purchase',
+                'requires_shipping' => 0,
+                'donation_recipient_type' => 'yiari',
+                'metadata' => wp_json_encode(array(
+                    'source' => 'checkout_donation_option',
+                    'motivation_code' => $checkout_data['donation_motivation_code'] ?? null,
+                )),
             );
         }
 

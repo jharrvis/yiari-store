@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated implementation plans to support book purchase plus donated-book flow and donation motivation capture.
 - Elevated repository guidance to require changelog updates for all material code, schema, workflow, and documentation changes.
 - Payment item generation now reads products through the normalized-table-first catalog layer instead of directly from the legacy dolls table.
+- Active checkout forms now collect order-flow preference and donation motivation, including an `Other` free-text path.
+- Checkout subtotal, normalized order items, and Midtrans item details now include the extra donated copy when donors choose the combined self-purchase plus donation flow.
 
 ## [3.1.1] - 2025-09-26
 

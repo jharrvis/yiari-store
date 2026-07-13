@@ -251,7 +251,7 @@ class YIARI_Form_Manager {
                             transition: all 0.3s ease;
                         " onmouseover="this.style.borderColor='#3498db'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'" onmouseout="this.style.borderColor='#f0f0f0'; this.style.transform='translateY(0)'; this.style.boxShadow='none'">
                             <div style="font-weight: 600; margin-bottom: 8px; font-size: 16px; color: #2c3e50;"><?php echo esc_html($doll->name); ?></div>
-                            <div style="font-size: 14px; color: #7f8c8d; margin-bottom: 15px;">Rp <?php echo number_format($doll->price, 0, ',', '.'); ?></div>
+                            <div style="font-size: 14px; color: #7f8c8d; margin-bottom: 15px;">Rp <?php echo number_format(isset($doll->price_idr) ? $doll->price_idr : $doll->price, 0, ',', '.'); ?></div>
 
                             <div class="qty-control" style="display: flex; align-items: center; justify-content: center; gap: 8px;">
                                 <button type="button" onclick="changeQty('<?php echo strtolower($doll->name); ?>', -1)" style="
@@ -295,6 +295,34 @@ class YIARI_Form_Manager {
                             </div>
                         </div>
                         <?php endforeach; ?>
+                    </div>
+                </div>
+
+                <div class="order-flow-section" style="background: rgba(255,255,255,0.95); padding: 24px; border-radius: 12px; margin-bottom: 24px;">
+                    <h3 style="margin: 0 0 16px 0; color: #2c3e50;">Pilihan Pemesanan</h3>
+                    <label style="display:block; margin-bottom:10px;">
+                        <input type="radio" name="order_flow_type" value="self_only" checked>
+                        Beli produk untuk diri sendiri
+                    </label>
+                    <label style="display:block; margin-bottom:10px;">
+                        <input type="radio" name="order_flow_type" value="self_plus_donation">
+                        Beli 1 produk untuk diri sendiri dan 1 produk untuk didonasikan melalui YIARI
+                    </label>
+                </div>
+
+                <div class="motivation-section" style="background: rgba(255,255,255,0.95); padding: 24px; border-radius: 12px; margin-bottom: 24px;">
+                    <h3 style="margin: 0 0 16px 0; color: #2c3e50;">Motivasi Donasi</h3>
+                    <label style="display:block; margin-bottom:8px; font-weight:500;">Apa alasan utama Anda berdonasi?</label>
+                    <select name="donation_motivation_code" id="donation_motivation_code" style="width:100%; padding:12px 16px; border:2px solid #e0e0e0; border-radius:8px; font-size:15px; background:#fff; box-sizing:border-box;">
+                        <option value="">Pilih salah satu</option>
+                        <option value="ingin_mendukung_misi_yiari">Ingin mendukung misi YIARI</option>
+                        <option value="tertarik_pada_produk_edukasi">Tertarik pada produk atau buku edukasi</option>
+                        <option value="ingin_berdonasi_produk">Ingin berdonasi produk melalui YIARI</option>
+                        <option value="rekomendasi_teman_atau_komunitas">Rekomendasi teman atau komunitas</option>
+                        <option value="lainnya">Lainnya</option>
+                    </select>
+                    <div id="donation_motivation_other_wrap" style="display:none; margin-top:12px;">
+                        <input type="text" name="donation_motivation_other" id="donation_motivation_other" placeholder="Silakan isi alasan Anda" style="width:100%; padding:12px 16px; border:2px solid #e0e0e0; border-radius:8px; font-size:15px; background:#fff; box-sizing:border-box;">
                     </div>
                 </div>
 
@@ -389,13 +417,22 @@ class YIARI_Form_Manager {
         function updateSubtotalOnly() {
             let subtotal = 0;
             let totalWeight = 0;
+            let firstSelectedPrice = 0;
 
             // Calculate subtotal and weight
             <?php foreach ($dolls as $doll): ?>
             const <?php echo strtolower($doll->name); ?>_qty = parseInt(document.querySelector('input[name="<?php echo strtolower($doll->name); ?>_qty"]').value) || 0;
-            subtotal += <?php echo strtolower($doll->name); ?>_qty * <?php echo intval($doll->price); ?>;
+            subtotal += <?php echo strtolower($doll->name); ?>_qty * <?php echo intval(isset($doll->price_idr) ? $doll->price_idr : $doll->price); ?>;
             totalWeight += <?php echo strtolower($doll->name); ?>_qty * <?php echo intval($doll->weight_grams); ?>;
+            if (!firstSelectedPrice && <?php echo strtolower($doll->name); ?>_qty > 0) {
+                firstSelectedPrice = <?php echo intval(isset($doll->price_idr) ? $doll->price_idr : $doll->price); ?>;
+            }
             <?php endforeach; ?>
+
+            const donationFlow = document.querySelector('input[name="order_flow_type"]:checked');
+            if (donationFlow && donationFlow.value === 'self_plus_donation' && firstSelectedPrice > 0) {
+                subtotal += firstSelectedPrice;
+            }
 
             document.getElementById('subtotalAmount').textContent = 'Rp ' + subtotal.toLocaleString('id-ID');
             document.getElementById('totalWeight').textContent = totalWeight + ' gram';
@@ -779,6 +816,16 @@ class YIARI_Form_Manager {
                 }
             });
 
+            const motivationInput = document.getElementById('donation_motivation_code');
+            if (!motivationInput || !motivationInput.value.trim()) {
+                errors.push('Motivasi donasi harus dipilih');
+            }
+
+            const motivationOtherInput = document.getElementById('donation_motivation_other');
+            if (motivationInput && motivationInput.value === 'lainnya' && (!motivationOtherInput || !motivationOtherInput.value.trim())) {
+                errors.push('Alasan donasi lainnya harus diisi');
+            }
+
             // Check if any items selected
             let hasItems = false;
             <?php foreach ($dolls as $doll): ?>
@@ -804,9 +851,34 @@ class YIARI_Form_Manager {
             return true;
         }
 
+        function toggleDonationMotivationOther() {
+            const motivation = document.getElementById('donation_motivation_code');
+            const otherWrap = document.getElementById('donation_motivation_other_wrap');
+            const otherInput = document.getElementById('donation_motivation_other');
+
+            if (!motivation || !otherWrap || !otherInput) {
+                return;
+            }
+
+            if (motivation.value === 'lainnya') {
+                otherWrap.style.display = 'block';
+            } else {
+                otherWrap.style.display = 'none';
+                otherInput.value = '';
+            }
+        }
+
         // Initialize calculations on page load
         updateSubtotalOnly();
         updateTotal();
+        document.getElementById('donation_motivation_code').addEventListener('change', toggleDonationMotivationOther);
+        document.querySelectorAll('input[name="order_flow_type"]').forEach(function(radio) {
+            radio.addEventListener('change', function() {
+                updateSubtotalOnly();
+                updateTotal();
+            });
+        });
+        toggleDonationMotivationOther();
         </script>
 
         <?php $this->add_form_javascript($dolls); ?>
@@ -922,6 +994,34 @@ class YIARI_Form_Manager {
                     <div class="form-group" style="flex: 1; min-width: 250px;">
                         <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333; font-size: 14px;">Complete Address *</label>
                         <textarea name="address" required style="width: 100%; min-height: 80px; resize: vertical; font-family: inherit; padding: 12px 16px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 16px; background: #fff; transition: border-color 0.3s ease;" placeholder="Street address, building number, apartment/unit details, etc." onfocus="this.style.borderColor='#3498db'" onblur="this.style.borderColor='#e0e0e0'"></textarea>
+                    </div>
+                </div>
+
+                <div style="background: rgba(255,255,255,0.95); padding: 24px; border-radius: 12px; margin-bottom: 24px;">
+                    <h3 style="margin: 0 0 16px 0; color: #2c3e50;">Order Preference</h3>
+                    <label style="display:block; margin-bottom:10px;">
+                        <input type="radio" name="order_flow_type" value="self_only" checked>
+                        Buy the product for myself
+                    </label>
+                    <label style="display:block; margin-bottom:10px;">
+                        <input type="radio" name="order_flow_type" value="self_plus_donation">
+                        Buy 1 product for myself and 1 product to donate through YIARI
+                    </label>
+                </div>
+
+                <div style="background: rgba(255,255,255,0.95); padding: 24px; border-radius: 12px; margin-bottom: 24px;">
+                    <h3 style="margin: 0 0 16px 0; color: #2c3e50;">Donation Motivation</h3>
+                    <label style="display:block; margin-bottom:8px; font-weight:500;">What is your main reason for donating?</label>
+                    <select name="donation_motivation_code" id="donation_motivation_code_en" style="width:100%; padding:12px 16px; border:2px solid #e0e0e0; border-radius:8px; font-size:15px; background:#fff; box-sizing:border-box;">
+                        <option value="">Please choose</option>
+                        <option value="ingin_mendukung_misi_yiari">I want to support YIARI's mission</option>
+                        <option value="tertarik_pada_produk_edukasi">I am interested in the educational product or book</option>
+                        <option value="ingin_berdonasi_produk">I want to donate a product through YIARI</option>
+                        <option value="rekomendasi_teman_atau_komunitas">Recommendation from a friend or community</option>
+                        <option value="lainnya">Other</option>
+                    </select>
+                    <div id="donation_motivation_other_wrap_en" style="display:none; margin-top:12px;">
+                        <input type="text" name="donation_motivation_other" id="donation_motivation_other_en" placeholder="Please tell us your reason" style="width:100%; padding:12px 16px; border:2px solid #e0e0e0; border-radius:8px; font-size:15px; background:#fff; box-sizing:border-box;">
                     </div>
                 </div>
 
@@ -1325,7 +1425,15 @@ class YIARI_Form_Manager {
                 $errors[] = "$label harus diisi";
             }
         }
-        
+
+        if (empty($form_data['donation_motivation_code'])) {
+            $errors[] = "Motivasi donasi harus dipilih";
+        }
+
+        if (($form_data['donation_motivation_code'] ?? '') === 'lainnya' && empty($form_data['donation_motivation_other'])) {
+            $errors[] = "Alasan donasi lainnya harus diisi";
+        }
+
         // Check if any dolls selected
         $has_dolls = false;
         $product_repository = new YIARI_Product_Repository();
@@ -1391,6 +1499,14 @@ class YIARI_Form_Manager {
             } else {
                 error_log("✅ Field '$field' passed validation");
             }
+        }
+
+        if (empty(trim($_POST['donation_motivation_code'] ?? ''))) {
+            $validation_errors[] = "Motivasi donasi harus dipilih";
+        }
+
+        if (trim($_POST['donation_motivation_code'] ?? '') === 'lainnya' && empty(trim($_POST['donation_motivation_other'] ?? ''))) {
+            $validation_errors[] = "Alasan donasi lainnya harus diisi";
         }
 
         // Email format validation
@@ -1471,8 +1587,13 @@ class YIARI_Form_Manager {
                 'courier_service' => 'REG',
                 'shipping_cost' => intval($_POST['shipping_cost']),
                 'language' => 'id',
-                'currency' => 'IDR'
+                'currency' => 'IDR',
+                'order_flow_type' => sanitize_text_field($_POST['order_flow_type'] ?? 'self_only'),
+                'donation_motivation_code' => sanitize_text_field($_POST['donation_motivation_code'] ?? ''),
+                'donation_motivation_other' => sanitize_text_field($_POST['donation_motivation_other'] ?? '')
             );
+
+            $donation_data['donation_book_count'] = ($donation_data['order_flow_type'] === 'self_plus_donation') ? 1 : 0;
 
             // Add product quantities and calculate totals
             $product_repository = new YIARI_Product_Repository();
@@ -1480,6 +1601,7 @@ class YIARI_Form_Manager {
 
             $total_items = 0;
             $subtotal = 0;
+            $first_selected_price = 0;
 
             foreach ($dolls as $doll) {
                 $doll_name = strtolower($doll->name);
@@ -1488,8 +1610,16 @@ class YIARI_Form_Manager {
                     $quantity = intval($_POST[$qty_key]);
                     $donation_data[$qty_key] = $quantity;
                     $total_items += $quantity;
-                    $subtotal += $quantity * floatval($doll->price_idr ?? 0);
+                    $unit_price = floatval($doll->price_idr ?? 0);
+                    $subtotal += $quantity * $unit_price;
+                    if (!$first_selected_price && $quantity > 0) {
+                        $first_selected_price = $unit_price;
+                    }
                 }
+            }
+
+            if (($donation_data['order_flow_type'] ?? 'self_only') === 'self_plus_donation' && $first_selected_price > 0) {
+                $subtotal += $first_selected_price;
             }
 
             $donation_data['total_items'] = $total_items;
@@ -1557,8 +1687,13 @@ class YIARI_Form_Manager {
                 'city_id' => sanitize_text_field($_POST['city_id']),
                 'postal_code' => sanitize_text_field($_POST['postal_code']),
                 'currency' => 'USD',
-                'exchange_rate' => floatval($_POST['exchange_rate'])
+                'exchange_rate' => floatval($_POST['exchange_rate']),
+                'order_flow_type' => sanitize_text_field($_POST['order_flow_type'] ?? 'self_only'),
+                'donation_motivation_code' => sanitize_text_field($_POST['donation_motivation_code'] ?? ''),
+                'donation_motivation_other' => sanitize_text_field($_POST['donation_motivation_other'] ?? '')
             );
+
+            $form_data['donation_book_count'] = ($form_data['order_flow_type'] === 'self_plus_donation') ? 1 : 0;
 
             // Get doll quantities
             global $wpdb;
@@ -1616,6 +1751,7 @@ class YIARI_Form_Manager {
         $product_repository = new YIARI_Product_Repository();
         $dolls = $product_repository->get_active_products();
         $selected_dolls = array();
+        $first_selected_price = 0;
 
         foreach ($dolls as $doll) {
             $doll_key = strtolower($doll->name) . '_qty';
@@ -1623,9 +1759,17 @@ class YIARI_Form_Manager {
 
             if ($qty > 0) {
                 $selected_dolls[strtolower($doll->name)] = $qty;
-                $subtotal += $qty * floatval($doll->price_idr ?? 0);
+                $unit_price = floatval($doll->price_idr ?? 0);
+                $subtotal += $qty * $unit_price;
                 $total_weight += $qty * intval($doll->weight_grams ?? 200);
+                if (!$first_selected_price) {
+                    $first_selected_price = $unit_price;
+                }
             }
+        }
+
+        if (($form_data['order_flow_type'] ?? 'self_only') === 'self_plus_donation' && $first_selected_price > 0) {
+            $subtotal += $first_selected_price;
         }
 
         if (empty($selected_dolls)) {
@@ -1665,6 +1809,9 @@ class YIARI_Form_Manager {
             'shipping_cost' => $shipping_cost,
             'gross_amount' => $total_amount,
             'currency' => 'IDR',
+            'donation_book_count' => intval($form_data['donation_book_count'] ?? 0),
+            'donation_motivation_code' => $form_data['donation_motivation_code'] ?? '',
+            'donation_motivation_other' => $form_data['donation_motivation_other'] ?? '',
             'transaction_status' => 'pending',
             'created_at' => current_time('mysql')
         );
@@ -1697,7 +1844,10 @@ class YIARI_Form_Manager {
             'city_name' => $form_data['city_name'],
             'postal_code' => $form_data['postal_code'],
             'shipping_cost' => $shipping_cost,
-            'currency' => 'IDR'
+            'currency' => 'IDR',
+            'donation_book_count' => intval($form_data['donation_book_count'] ?? 0),
+            'donation_motivation_code' => $form_data['donation_motivation_code'] ?? '',
+            'donation_motivation_other' => $form_data['donation_motivation_other'] ?? ''
         );
 
         // Add doll data to payment
@@ -1757,12 +1907,21 @@ class YIARI_Form_Manager {
             }
         }
 
+        if (empty($form_data['donation_motivation_code'])) {
+            $errors[] = "Donation motivation is required";
+        }
+
+        if (($form_data['donation_motivation_code'] ?? '') === 'lainnya' && empty($form_data['donation_motivation_other'])) {
+            $errors[] = "Please fill in the other donation reason";
+        }
+
         // Check if any dolls selected
         $subtotal_usd = 0;
         $total_weight = 0;
         $product_repository = new YIARI_Product_Repository();
         $dolls = $product_repository->get_active_products();
         $selected_dolls = array();
+        $first_selected_price_usd = 0;
 
         foreach ($dolls as $doll) {
             $doll_key = strtolower($doll->name) . '_qty';
@@ -1770,9 +1929,17 @@ class YIARI_Form_Manager {
 
             if ($qty > 0) {
                 $selected_dolls[strtolower($doll->name)] = $qty;
-                $subtotal_usd += $qty * floatval($doll->price_usd ?? 0);
+                $unit_price_usd = floatval($doll->price_usd ?? 0);
+                $subtotal_usd += $qty * $unit_price_usd;
                 $total_weight += $qty * intval($doll->weight_grams ?? 200);
+                if (!$first_selected_price_usd) {
+                    $first_selected_price_usd = $unit_price_usd;
+                }
             }
+        }
+
+        if (($form_data['order_flow_type'] ?? 'self_only') === 'self_plus_donation' && $first_selected_price_usd > 0) {
+            $subtotal_usd += $first_selected_price_usd;
         }
 
         if (empty($selected_dolls)) {
@@ -1817,6 +1984,9 @@ class YIARI_Form_Manager {
             'currency' => 'USD',
             'exchange_rate' => $form_data['exchange_rate'],
             'usd_amount' => $total_amount_usd,
+            'donation_book_count' => intval($form_data['donation_book_count'] ?? 0),
+            'donation_motivation_code' => $form_data['donation_motivation_code'] ?? '',
+            'donation_motivation_other' => $form_data['donation_motivation_other'] ?? '',
             'transaction_status' => 'pending',
             'created_at' => current_time('mysql')
         );
@@ -1849,7 +2019,10 @@ class YIARI_Form_Manager {
             'city_name' => $form_data['city_name'],
             'postal_code' => $form_data['postal_code'],
             'shipping_cost' => $shipping_cost_idr,
-            'currency' => 'USD' // Flag for payment processing
+            'currency' => 'USD', // Flag for payment processing
+            'donation_book_count' => intval($form_data['donation_book_count'] ?? 0),
+            'donation_motivation_code' => $form_data['donation_motivation_code'] ?? '',
+            'donation_motivation_other' => $form_data['donation_motivation_other'] ?? ''
         );
 
         // Add doll data to payment
@@ -1934,6 +2107,7 @@ class YIARI_Form_Manager {
                 subtotal_usd = 0;
                 var itemsSummary = '';
                 var hasItems = false;
+                var firstSelectedPrice = 0;
 
                 $.each(doll_prices_usd, function(dollName, price) {
                     var qty = parseInt($('#' + dollName + '_qty_en').val()) || 0;
@@ -1941,8 +2115,17 @@ class YIARI_Form_Manager {
                         subtotal_usd += qty * price;
                         itemsSummary += '<div>' + dollName.charAt(0).toUpperCase() + dollName.slice(1) + ' × ' + qty + ' = ' + formatUSD(qty * price) + '</div>';
                         hasItems = true;
+                        if (!firstSelectedPrice) {
+                            firstSelectedPrice = price;
+                        }
                     }
                 });
+
+                if ($('input[name="order_flow_type"]:checked').val() === 'self_plus_donation' && firstSelectedPrice > 0) {
+                    subtotal_usd += firstSelectedPrice;
+                    itemsSummary += '<div>Donation copy × 1 = ' + formatUSD(firstSelectedPrice) + '</div>';
+                    hasItems = true;
+                }
 
                 if (hasItems) {
                     $('#items_summary_en').html(itemsSummary);
@@ -2092,6 +2275,8 @@ class YIARI_Form_Manager {
                 if (!$('#address_en').val().trim()) errors.push('Address is required');
                 if (!$('#city_name_en').val().trim()) errors.push('City must be selected');
                 if (!$('#postal_code_en').val().trim()) errors.push('Postal code is required');
+                if (!$('#donation_motivation_code_en').val().trim()) errors.push('Donation motivation is required');
+                if ($('#donation_motivation_code_en').val() === 'lainnya' && !$('#donation_motivation_other_en').val().trim()) errors.push('Please fill in the other donation reason');
 
                 // Check if any dolls selected
                 var hasDolls = false;
@@ -2143,6 +2328,14 @@ class YIARI_Form_Manager {
 
             // Initialize calculations
             calculateSubtotalEn();
+            $('#donation_motivation_code_en').on('change', function() {
+                if ($(this).val() === 'lainnya') {
+                    $('#donation_motivation_other_wrap_en').show();
+                } else {
+                    $('#donation_motivation_other_wrap_en').hide();
+                    $('#donation_motivation_other_en').val('');
+                }
+            }).trigger('change');
         });
         </script>
         <?php
@@ -2194,10 +2387,18 @@ class YIARI_Form_Manager {
             // Calculate subtotal
             function calculateSubtotal() {
                 subtotal = 0;
+                var firstSelectedPrice = 0;
                 $.each(doll_prices, function(dollName, price) {
                     var qty = parseInt($('#' + dollName + '_qty').val()) || 0;
                     subtotal += qty * price;
+                    if (!firstSelectedPrice && qty > 0) {
+                        firstSelectedPrice = price;
+                    }
                 });
+
+                if ($('input[name="order_flow_type"]:checked').val() === 'self_plus_donation' && firstSelectedPrice > 0) {
+                    subtotal += firstSelectedPrice;
+                }
 
                 $('#subtotal_display').text(formatIDR(subtotal));
                 calculateTotal();
@@ -2219,6 +2420,10 @@ class YIARI_Form_Manager {
                 var dollName = $(this).data('doll');
                 var change = $(this).hasClass('plus') ? 1 : -1;
                 updateQuantity(dollName, change);
+            });
+
+            $('input[name="order_flow_type"]').on('change', function() {
+                calculateSubtotal();
             });
 
             // Manual quantity input handler
@@ -2422,6 +2627,9 @@ class YIARI_Form_Manager {
             'subtotal' => isset($donation_data['subtotal']) ? $donation_data['subtotal'] : $donation_data['gross_amount'],
             'shipping_cost' => isset($donation_data['shipping_cost']) ? $donation_data['shipping_cost'] : 0,
             'currency' => isset($donation_data['currency']) ? $donation_data['currency'] : 'IDR',
+            'donation_book_count' => intval($donation_data['donation_book_count'] ?? 0),
+            'donation_motivation_code' => $donation_data['donation_motivation_code'] ?? '',
+            'donation_motivation_other' => $donation_data['donation_motivation_other'] ?? '',
             'transaction_status' => 'pending',
             'created_at' => current_time('mysql')
         );

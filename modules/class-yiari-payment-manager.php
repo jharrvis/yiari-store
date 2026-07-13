@@ -198,6 +198,7 @@ class YIARI_Payment_Manager {
         $item_details = array();
         $product_repository = new YIARI_Product_Repository();
         $dolls = $product_repository->get_active_products();
+        $first_selected_item = null;
 
         foreach ($dolls as $doll) {
             $doll_name = strtolower($doll->name);
@@ -213,6 +214,14 @@ class YIARI_Payment_Manager {
                     $price = intval($price / $donation_data['exchange_rate']);
                 }
 
+                if (null === $first_selected_item) {
+                    $first_selected_item = array(
+                        'id' => $doll_name . '_donation',
+                        'price' => $price,
+                        'name' => $doll->name . ' Donation Copy',
+                    );
+                }
+
                 $item_details[] = array(
                     'id' => $doll_name,
                     'price' => $price,
@@ -220,6 +229,16 @@ class YIARI_Payment_Manager {
                     'name' => $doll->name . ' Slow Loris Doll'
                 );
             }
+        }
+
+        $donation_count = intval($donation_data['donation_book_count'] ?? 0);
+        if ($donation_count > 0 && null !== $first_selected_item) {
+            $item_details[] = array(
+                'id' => $first_selected_item['id'],
+                'price' => $first_selected_item['price'],
+                'quantity' => $donation_count,
+                'name' => $first_selected_item['name']
+            );
         }
         
         // Add shipping cost
