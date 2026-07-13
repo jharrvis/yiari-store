@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Payment item generation now reads products through the normalized-table-first catalog layer instead of directly from the legacy dolls table.
 - Active checkout forms now collect order-flow preference and donation motivation, including an `Other` free-text path.
 - Checkout subtotal, normalized order items, and Midtrans item details now include the extra donated copy when donors choose the combined self-purchase plus donation flow.
+- Legacy transaction inserts are now filtered against the actual legacy table schema so the new checkout fields do not break backward-compatible writes.
 
 ## [3.1.1] - 2025-09-26
 

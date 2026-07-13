@@ -1719,6 +1719,33 @@ class YIARI_Form_Manager {
     }
 
     /**
+     * Filter transaction payload to columns that exist in the legacy table.
+     *
+     * This preserves backward compatibility while new fields are stored in the
+     * normalized tables only.
+     *
+     * @param array $transaction_data Candidate insert payload.
+     * @return array
+     */
+    private function filter_legacy_transaction_data($transaction_data) {
+        global $wpdb;
+
+        static $allowed_columns = null;
+
+        if (null === $allowed_columns) {
+            $table_name = $wpdb->prefix . 'kukang_transactions_new';
+            $columns = $wpdb->get_col("SHOW COLUMNS FROM {$table_name}");
+            $allowed_columns = is_array($columns) ? array_fill_keys($columns, true) : array();
+        }
+
+        if (empty($allowed_columns)) {
+            return $transaction_data;
+        }
+
+        return array_intersect_key($transaction_data, $allowed_columns);
+    }
+
+    /**
      * Process Indonesian donation
      *
      * @since    3.1.0
@@ -1821,7 +1848,10 @@ class YIARI_Form_Manager {
             $transaction_data[$doll_name . '_qty'] = $qty;
         }
 
-        $inserted = $wpdb->insert($wpdb->prefix . 'kukang_transactions_new', $transaction_data);
+        $inserted = $wpdb->insert(
+            $wpdb->prefix . 'kukang_transactions_new',
+            $this->filter_legacy_transaction_data($transaction_data)
+        );
 
         if (!$inserted) {
             return array('success' => false, 'message' => 'Gagal menyimpan data transaksi');
@@ -1996,7 +2026,10 @@ class YIARI_Form_Manager {
             $transaction_data[$doll_name . '_qty'] = $qty;
         }
 
-        $inserted = $wpdb->insert($wpdb->prefix . 'kukang_transactions_new', $transaction_data);
+        $inserted = $wpdb->insert(
+            $wpdb->prefix . 'kukang_transactions_new',
+            $this->filter_legacy_transaction_data($transaction_data)
+        );
 
         if (!$inserted) {
             return array('success' => false, 'message' => 'Failed to save transaction data');
@@ -2653,7 +2686,7 @@ class YIARI_Form_Manager {
 
         // Insert into database
         $table_name = $wpdb->prefix . 'kukang_transactions_new';
-        $result = $wpdb->insert($table_name, $transaction_data);
+        $result = $wpdb->insert($table_name, $this->filter_legacy_transaction_data($transaction_data));
 
         if ($result === false) {
             error_log("❌ Failed to save transaction to database: " . $wpdb->last_error);
