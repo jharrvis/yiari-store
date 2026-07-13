@@ -44,6 +44,8 @@ class YIARI_Order_Service {
             }
         }
 
+        $order_flow_type = sanitize_text_field($checkout_data['order_flow_type'] ?? 'self_only');
+
         $payment_status = isset($options['payment_status'])
             ? $options['payment_status']
             : $this->map_legacy_payment_status($checkout_data['transaction_status'] ?? 'pending');
@@ -70,7 +72,10 @@ class YIARI_Order_Service {
             'total_weight_grams' => $total_weight,
             'self_book_count' => $self_item_count,
             'donation_book_count' => $donation_item_count,
+            'self_item_count' => $self_item_count,
+            'donation_item_count' => $donation_item_count,
             'contains_donation_items' => $donation_item_count > 0 ? 1 : 0,
+            'order_flow_type' => $order_flow_type,
             'donation_motivation_code' => $checkout_data['donation_motivation_code'] ?? null,
             'donation_motivation_other' => $checkout_data['donation_motivation_other'] ?? null,
             'payment_gateway' => 'midtrans',
@@ -88,7 +93,7 @@ class YIARI_Order_Service {
 
         $formats = array(
             '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s',
-            '%f', '%f', '%f', '%d', '%d', '%d', '%s', '%s', '%s', '%s', '%s',
+            '%f', '%f', '%f', '%d', '%d', '%d', '%d', '%d', '%s', '%s', '%s', '%s', '%s',
             '%s', '%s', '%s', '%s', '%s'
         );
 
@@ -229,7 +234,7 @@ class YIARI_Order_Service {
             );
         }
 
-        $donation_count = intval($checkout_data['donation_book_count'] ?? 0);
+        $donation_count = intval($checkout_data['donation_item_count'] ?? ($checkout_data['donation_book_count'] ?? 0));
         if ($donation_count > 0 && !empty($selected_products)) {
             $base_product = $selected_products[0]['product'];
             $currency = $checkout_data['currency'] ?? 'IDR';

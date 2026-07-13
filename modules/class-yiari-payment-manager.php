@@ -226,12 +226,12 @@ class YIARI_Payment_Manager {
                     'id' => $doll_name,
                     'price' => $price,
                     'quantity' => $qty,
-                    'name' => $doll->name . ' Slow Loris Doll'
+                    'name' => $doll->name
                 );
             }
         }
 
-        $donation_count = intval($donation_data['donation_book_count'] ?? 0);
+        $donation_count = intval($donation_data['donation_item_count'] ?? ($donation_data['donation_book_count'] ?? 0));
         if ($donation_count > 0 && null !== $first_selected_item) {
             $item_details[] = array(
                 'id' => $first_selected_item['id'],

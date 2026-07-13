@@ -8,7 +8,7 @@ class YIARI_Legacy_Data_Migrator {
     /**
      * Version marker for legacy data migration.
      */
-    const DATA_MIGRATION_VERSION = '2026-07-13-01';
+    const DATA_MIGRATION_VERSION = '2026-07-14-01';
 
     /**
      * Option key used to persist the legacy migration version.
@@ -109,7 +109,7 @@ class YIARI_Legacy_Data_Migrator {
                 continue;
             }
 
-            $self_book_count = $this->get_legacy_self_item_count($legacy_order);
+            $self_item_count = $this->get_legacy_self_item_count($legacy_order);
             $payment_status = $this->map_legacy_payment_status($legacy_order->transaction_status);
             $fulfillment_status = $this->map_legacy_fulfillment_status($legacy_order->order_status, $legacy_order->tracking_number);
 
@@ -131,9 +131,12 @@ class YIARI_Legacy_Data_Migrator {
                     'shipping_amount' => $legacy_order->shipping_cost,
                     'total_amount' => $legacy_order->gross_amount,
                     'total_weight_grams' => (int) $legacy_order->total_weight,
-                    'self_book_count' => $self_book_count,
+                    'self_book_count' => $self_item_count,
                     'donation_book_count' => 0,
+                    'self_item_count' => $self_item_count,
+                    'donation_item_count' => 0,
                     'contains_donation_items' => 0,
+                    'order_flow_type' => 'self_only',
                     'payment_gateway' => 'midtrans',
                     'payment_reference' => $legacy_order->transaction_id,
                     'payment_type' => $legacy_order->payment_type,

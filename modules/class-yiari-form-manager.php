@@ -112,7 +112,7 @@ class YIARI_Form_Manager {
         ">
             <div class="form-header" style="text-align: center; margin-bottom: 40px;">
                 <h2 style="color: white; margin: 0 0 10px 0; font-size: 28px; font-weight: 300; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">Informasi Donatur</h2>
-                <p style="color: rgba(255,255,255,0.9); font-size: 16px; margin: 0; text-shadow: 0 1px 2px rgba(0,0,0,0.3);">Lengkapi data berikut untuk proses adopsi boneka kukang</p>
+                <p style="color: rgba(255,255,255,0.9); font-size: 16px; margin: 0; text-shadow: 0 1px 2px rgba(0,0,0,0.3);">Lengkapi data berikut untuk proses pemesanan dan donasi produk</p>
             </div>
 
             <form id="donasiKukangForm" class="donasi-form" style="max-width: 800px; margin: 0 auto;">
@@ -316,7 +316,7 @@ class YIARI_Form_Manager {
                     <select name="donation_motivation_code" id="donation_motivation_code" style="width:100%; padding:12px 16px; border:2px solid #e0e0e0; border-radius:8px; font-size:15px; background:#fff; box-sizing:border-box;">
                         <option value="">Pilih salah satu</option>
                         <option value="ingin_mendukung_misi_yiari">Ingin mendukung misi YIARI</option>
-                        <option value="tertarik_pada_produk_edukasi">Tertarik pada produk atau buku edukasi</option>
+                        <option value="tertarik_pada_produk_edukasi">Tertarik pada produk atau item edukasi</option>
                         <option value="ingin_berdonasi_produk">Ingin berdonasi produk melalui YIARI</option>
                         <option value="rekomendasi_teman_atau_komunitas">Rekomendasi teman atau komunitas</option>
                         <option value="lainnya">Lainnya</option>
@@ -834,7 +834,7 @@ class YIARI_Form_Manager {
             <?php endforeach; ?>
 
             if (!hasItems) {
-                errors.push('Pilih minimal 1 boneka kukang untuk diadopsi');
+                errors.push('Pilih minimal 1 produk');
             }
 
             // Check shipping cost
@@ -923,7 +923,7 @@ class YIARI_Form_Manager {
         <div class="donasi-kukang-container" style="width: 100%; max-width: 100%; padding: 20px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; color: #333; line-height: 1.6;">
             <div style="text-align: center; margin-bottom: 40px;">
                 <h2 style="color: white; margin: 0 0 10px 0; font-size: 28px; font-weight: 300; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">🐒 Adopt a Slow Loris</h2>
-                <p style="color: rgba(255,255,255,0.9); font-size: 16px; margin: 0; text-shadow: 0 1px 2px rgba(0,0,0,0.3);">Complete the following information for slow loris doll adoption process</p>
+                <p style="color: rgba(255,255,255,0.9); font-size: 16px; margin: 0; text-shadow: 0 1px 2px rgba(0,0,0,0.3);">Complete the following information for your product order and donation</p>
             </div>
 
             <form id="donasiKukangFormEn" class="donasi-form" style="background: rgba(255, 255, 255, 0.95); padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); margin-bottom: 20px; backdrop-filter: blur(10px);">
@@ -1291,7 +1291,7 @@ class YIARI_Form_Manager {
             }
 
             if (!hasDolls) {
-                errors.push('Please select at least 1 slow loris doll to adopt');
+                errors.push('Please select at least 1 product');
             }
 
             if (errors.length > 0) {
@@ -1448,7 +1448,7 @@ class YIARI_Form_Manager {
         }
         
         if (!$has_dolls) {
-            $errors[] = "Pilih minimal 1 boneka kukang untuk diadopsi";
+            $errors[] = "Pilih minimal 1 produk";
         }
         
         if (!empty($errors)) {
@@ -1539,7 +1539,7 @@ class YIARI_Form_Manager {
         error_log("Items validation: has_items=" . ($has_items ? 'yes' : 'no') . ", quantities=" . json_encode($item_quantities));
 
         if (!$has_items) {
-            $validation_errors[] = "Pilih minimal 1 boneka kukang untuk diadopsi";
+            $validation_errors[] = "Pilih minimal 1 produk";
             error_log("❌ Items validation failed: no items selected");
         } else {
             error_log("✅ Items validation passed");
@@ -1593,7 +1593,8 @@ class YIARI_Form_Manager {
                 'donation_motivation_other' => sanitize_text_field($_POST['donation_motivation_other'] ?? '')
             );
 
-            $donation_data['donation_book_count'] = ($donation_data['order_flow_type'] === 'self_plus_donation') ? 1 : 0;
+            $donation_data['donation_item_count'] = ($donation_data['order_flow_type'] === 'self_plus_donation') ? 1 : 0;
+            $donation_data['donation_book_count'] = $donation_data['donation_item_count'];
 
             // Add product quantities and calculate totals
             $product_repository = new YIARI_Product_Repository();
@@ -1627,7 +1628,7 @@ class YIARI_Form_Manager {
             $donation_data['gross_amount'] = $subtotal + $donation_data['shipping_cost'];
 
             // Generate unique order ID
-            $donation_data['order_id'] = 'KUKANG-' . date('Ymd') . '-' . strtoupper(wp_generate_password(6, false));
+            $donation_data['order_id'] = 'YIARI-' . date('Ymd') . '-' . strtoupper(wp_generate_password(6, false));
 
             // Add environment setting
             $payment_manager = new YIARI_Payment_Manager();
@@ -1693,7 +1694,8 @@ class YIARI_Form_Manager {
                 'donation_motivation_other' => sanitize_text_field($_POST['donation_motivation_other'] ?? '')
             );
 
-            $form_data['donation_book_count'] = ($form_data['order_flow_type'] === 'self_plus_donation') ? 1 : 0;
+            $form_data['donation_item_count'] = ($form_data['order_flow_type'] === 'self_plus_donation') ? 1 : 0;
+            $form_data['donation_book_count'] = $form_data['donation_item_count'];
 
             // Get doll quantities
             global $wpdb;
@@ -1800,7 +1802,7 @@ class YIARI_Form_Manager {
         }
 
         if (empty($selected_dolls)) {
-            $errors[] = "Pilih minimal 1 boneka kukang untuk diadopsi";
+            $errors[] = "Pilih minimal 1 produk";
         }
 
         if (!empty($errors)) {
@@ -1821,7 +1823,7 @@ class YIARI_Form_Manager {
         $total_amount = $subtotal + $shipping_cost;
 
         // Generate order ID
-        $order_id = 'KUKANG-' . date('YmdHis') . '-' . wp_rand(1000, 9999);
+        $order_id = 'YIARI-' . date('YmdHis') . '-' . wp_rand(1000, 9999);
 
         // Save to database
         $transaction_data = array(
@@ -1836,7 +1838,9 @@ class YIARI_Form_Manager {
             'shipping_cost' => $shipping_cost,
             'gross_amount' => $total_amount,
             'currency' => 'IDR',
-            'donation_book_count' => intval($form_data['donation_book_count'] ?? 0),
+            'order_flow_type' => $form_data['order_flow_type'] ?? 'self_only',
+            'donation_item_count' => intval($form_data['donation_item_count'] ?? ($form_data['donation_book_count'] ?? 0)),
+            'donation_book_count' => intval($form_data['donation_item_count'] ?? ($form_data['donation_book_count'] ?? 0)),
             'donation_motivation_code' => $form_data['donation_motivation_code'] ?? '',
             'donation_motivation_other' => $form_data['donation_motivation_other'] ?? '',
             'transaction_status' => 'pending',
@@ -1875,7 +1879,9 @@ class YIARI_Form_Manager {
             'postal_code' => $form_data['postal_code'],
             'shipping_cost' => $shipping_cost,
             'currency' => 'IDR',
-            'donation_book_count' => intval($form_data['donation_book_count'] ?? 0),
+            'order_flow_type' => $form_data['order_flow_type'] ?? 'self_only',
+            'donation_item_count' => intval($form_data['donation_item_count'] ?? ($form_data['donation_book_count'] ?? 0)),
+            'donation_book_count' => intval($form_data['donation_item_count'] ?? ($form_data['donation_book_count'] ?? 0)),
             'donation_motivation_code' => $form_data['donation_motivation_code'] ?? '',
             'donation_motivation_other' => $form_data['donation_motivation_other'] ?? ''
         );
@@ -1973,7 +1979,7 @@ class YIARI_Form_Manager {
         }
 
         if (empty($selected_dolls)) {
-            $errors[] = "Please select at least one slow loris to adopt";
+            $errors[] = "Please select at least one product";
         }
 
         if (!empty($errors)) {
@@ -1997,7 +2003,7 @@ class YIARI_Form_Manager {
         $total_amount_idr = $total_amount_usd / $form_data['exchange_rate']; // Convert back to IDR for Midtrans
 
         // Generate order ID
-        $order_id = 'KUKANG-EN-' . date('YmdHis') . '-' . wp_rand(1000, 9999);
+        $order_id = 'YIARI-EN-' . date('YmdHis') . '-' . wp_rand(1000, 9999);
 
         // Save to database (amounts in IDR for consistency)
         $transaction_data = array(
@@ -2014,7 +2020,9 @@ class YIARI_Form_Manager {
             'currency' => 'USD',
             'exchange_rate' => $form_data['exchange_rate'],
             'usd_amount' => $total_amount_usd,
-            'donation_book_count' => intval($form_data['donation_book_count'] ?? 0),
+            'order_flow_type' => $form_data['order_flow_type'] ?? 'self_only',
+            'donation_item_count' => intval($form_data['donation_item_count'] ?? ($form_data['donation_book_count'] ?? 0)),
+            'donation_book_count' => intval($form_data['donation_item_count'] ?? ($form_data['donation_book_count'] ?? 0)),
             'donation_motivation_code' => $form_data['donation_motivation_code'] ?? '',
             'donation_motivation_other' => $form_data['donation_motivation_other'] ?? '',
             'transaction_status' => 'pending',
@@ -2053,7 +2061,9 @@ class YIARI_Form_Manager {
             'postal_code' => $form_data['postal_code'],
             'shipping_cost' => $shipping_cost_idr,
             'currency' => 'USD', // Flag for payment processing
-            'donation_book_count' => intval($form_data['donation_book_count'] ?? 0),
+            'order_flow_type' => $form_data['order_flow_type'] ?? 'self_only',
+            'donation_item_count' => intval($form_data['donation_item_count'] ?? ($form_data['donation_book_count'] ?? 0)),
+            'donation_book_count' => intval($form_data['donation_item_count'] ?? ($form_data['donation_book_count'] ?? 0)),
             'donation_motivation_code' => $form_data['donation_motivation_code'] ?? '',
             'donation_motivation_other' => $form_data['donation_motivation_other'] ?? ''
         );
@@ -2156,14 +2166,14 @@ class YIARI_Form_Manager {
 
                 if ($('input[name="order_flow_type"]:checked').val() === 'self_plus_donation' && firstSelectedPrice > 0) {
                     subtotal_usd += firstSelectedPrice;
-                    itemsSummary += '<div>Donation copy × 1 = ' + formatUSD(firstSelectedPrice) + '</div>';
+                    itemsSummary += '<div>Donation item × 1 = ' + formatUSD(firstSelectedPrice) + '</div>';
                     hasItems = true;
                 }
 
                 if (hasItems) {
                     $('#items_summary_en').html(itemsSummary);
                 } else {
-                    $('#items_summary_en').html('<span style="color: #666; font-style: italic;">Select slow lorises above to see summary</span>');
+                    $('#items_summary_en').html('<span style="color: #666; font-style: italic;">Select products above to see summary</span>');
                 }
 
                 $('#subtotal_display_en').text(formatUSD(subtotal_usd));
@@ -2322,7 +2332,7 @@ class YIARI_Form_Manager {
                 });
 
                 if (!hasDolls) {
-                    errors.push('Please select at least one slow loris to adopt');
+                    errors.push('Please select at least one product');
                 }
 
                 if (errors.length > 0) {
@@ -2587,7 +2597,7 @@ class YIARI_Form_Manager {
                 });
 
                 if (!hasDolls) {
-                    errors.push('Pilih minimal 1 boneka kukang untuk diadopsi');
+                    errors.push('Pilih minimal 1 produk');
                 }
 
                 if (errors.length > 0) {
@@ -2660,7 +2670,9 @@ class YIARI_Form_Manager {
             'subtotal' => isset($donation_data['subtotal']) ? $donation_data['subtotal'] : $donation_data['gross_amount'],
             'shipping_cost' => isset($donation_data['shipping_cost']) ? $donation_data['shipping_cost'] : 0,
             'currency' => isset($donation_data['currency']) ? $donation_data['currency'] : 'IDR',
-            'donation_book_count' => intval($donation_data['donation_book_count'] ?? 0),
+            'order_flow_type' => $donation_data['order_flow_type'] ?? 'self_only',
+            'donation_item_count' => intval($donation_data['donation_item_count'] ?? ($donation_data['donation_book_count'] ?? 0)),
+            'donation_book_count' => intval($donation_data['donation_item_count'] ?? ($donation_data['donation_book_count'] ?? 0)),
             'donation_motivation_code' => $donation_data['donation_motivation_code'] ?? '',
             'donation_motivation_other' => $donation_data['donation_motivation_other'] ?? '',
             'transaction_status' => 'pending',

@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Active checkout forms now collect order-flow preference and donation motivation, including an `Other` free-text path.
 - Checkout subtotal, normalized order items, and Midtrans item details now include the extra donated copy when donors choose the combined self-purchase plus donation flow.
 - Legacy transaction inserts are now filtered against the actual legacy table schema so the new checkout fields do not break backward-compatible writes.
+- Normalized orders now store generic item counters and `order_flow_type`, while preserving legacy `*_book_count` fields only for compatibility during migration.
+- Admin product management now runs on the normalized `yiari_products` catalog with create, edit, and delete support for SKU, stock, shipping, status, and sort order.
 
 ## [3.1.1] - 2025-09-26
 

@@ -8,7 +8,7 @@ class YIARI_Schema_Migrator {
     /**
      * Version marker for schema migrations managed by this class.
      */
-    const SCHEMA_VERSION = '2026-07-13-02';
+    const SCHEMA_VERSION = '2026-07-14-01';
 
     /**
      * Option key used to persist the installed schema version.
@@ -94,7 +94,10 @@ class YIARI_Schema_Migrator {
             total_weight_grams INT UNSIGNED NOT NULL DEFAULT 0,
             self_book_count INT UNSIGNED NOT NULL DEFAULT 0,
             donation_book_count INT UNSIGNED NOT NULL DEFAULT 0,
+            self_item_count INT UNSIGNED NOT NULL DEFAULT 0,
+            donation_item_count INT UNSIGNED NOT NULL DEFAULT 0,
             contains_donation_items TINYINT(1) NOT NULL DEFAULT 0,
+            order_flow_type VARCHAR(32) NOT NULL DEFAULT 'self_only',
             donation_motivation_code VARCHAR(64) NULL,
             donation_motivation_other TEXT NULL,
             payment_gateway VARCHAR(32) NOT NULL DEFAULT 'midtrans',
@@ -111,6 +114,7 @@ class YIARI_Schema_Migrator {
             PRIMARY KEY  (id),
             UNIQUE KEY order_number (order_number),
             KEY donor_email (donor_email),
+            KEY order_flow_type (order_flow_type),
             KEY payment_status (payment_status),
             KEY fulfillment_status (fulfillment_status),
             KEY created_at (created_at)

@@ -46,8 +46,9 @@ Data penting:
 
 Tambahan field yang disarankan:
 - `orders`:
-  - `donation_book_count`
-  - `self_book_count`
+  - `donation_item_count`
+  - `self_item_count`
+  - `order_flow_type`
   - `contains_donation_items`
   - `donation_motivation_code`
   - `donation_motivation_other`
@@ -85,7 +86,7 @@ Tambahan field yang disarankan:
 - buat script migrasi dari data `kukang` lama ke `products`
 
 ### Phase 2. Product Catalog
-- buat repository dan admin CRUD produk
+- buat repository dan admin CRUD produk berbasis `yiari_products`
 - ubah front-end agar membaca item dari katalog, bukan hardcoded boneka
 - untuk produk buku, pertahankan satu produk utama dan biarkan checkout yang membentuk dua jenis item order
 

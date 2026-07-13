@@ -75,8 +75,8 @@ class YIARI_Admin_Module {
         
         add_submenu_page(
             'donasi-midtrans',
-            'Kelola Boneka Kukang',
-            'Boneka Kukang',
+            'Kelola Produk',
+            'Produk',
             'manage_options',
             'kukang-dolls',
             array($this, 'render_dolls_management')
@@ -848,92 +848,66 @@ class YIARI_Admin_Module {
     }
     
     /**
-     * Handle doll CRUD operations
+     * Handle product CRUD operations.
      *
      * @since    3.1.0
      */
     private function handle_doll_operations() {
-        global $wpdb;
-
         // Verify nonce
         if (!isset($_POST['doll_nonce']) || !wp_verify_nonce($_POST['doll_nonce'], 'doll_management')) {
             wp_die('Security check failed');
         }
 
         $action = sanitize_text_field($_POST['action']);
-        $table_name = $wpdb->prefix . 'kukang_dolls_new';
+        $product_repository = new YIARI_Product_Repository();
 
         switch ($action) {
             case 'add':
-                $data = array(
-                    'name' => sanitize_text_field($_POST['doll_name']),
-                    'price_idr' => intval($_POST['price_idr']),
-                    'price_usd' => floatval($_POST['price_usd']),
-                    'weight_grams' => intval($_POST['weight_grams']),
-                    'length_cm' => intval($_POST['length_cm']),
-                    'width_cm' => intval($_POST['width_cm']),
-                    'height_cm' => intval($_POST['height_cm']),
-                    'description' => sanitize_textarea_field($_POST['description']),
-                    'is_active' => isset($_POST['is_active']) ? 1 : 0
-                );
-
-                // Auto-calculate USD price if not provided
-                if (empty($data['price_usd']) && $data['price_idr'] > 0) {
-                    $currency_settings = $wpdb->get_row("SELECT usd_rate FROM {$wpdb->prefix}kukang_currency_new WHERE currency_code = 'USD'");
-                    $usd_rate = $currency_settings ? $currency_settings->usd_rate : 0.000067;
-                    $data['price_usd'] = $data['price_idr'] * $usd_rate;
-                }
-
-                $result = $wpdb->insert($table_name, $data);
-
-                if ($result !== false) {
-                    echo '<div class="notice notice-success is-dismissible"><p>Boneka berhasil ditambahkan!</p></div>';
-                } else {
-                    echo '<div class="notice notice-error is-dismissible"><p>Gagal menambahkan boneka: ' . $wpdb->last_error . '</p></div>';
-                }
+                $result = $product_repository->save_product($this->get_product_form_data());
+                echo $result['success']
+                    ? '<div class="notice notice-success is-dismissible"><p>' . esc_html($result['message']) . '</p></div>'
+                    : '<div class="notice notice-error is-dismissible"><p>' . esc_html($result['message']) . '</p></div>';
                 break;
 
             case 'edit':
-                $doll_id = intval($_POST['doll_id']);
-                $data = array(
-                    'name' => sanitize_text_field($_POST['doll_name']),
-                    'price_idr' => intval($_POST['price_idr']),
-                    'price_usd' => floatval($_POST['price_usd']),
-                    'weight_grams' => intval($_POST['weight_grams']),
-                    'length_cm' => intval($_POST['length_cm']),
-                    'width_cm' => intval($_POST['width_cm']),
-                    'height_cm' => intval($_POST['height_cm']),
-                    'description' => sanitize_textarea_field($_POST['description']),
-                    'is_active' => isset($_POST['is_active']) ? 1 : 0
-                );
-
-                // Auto-calculate USD price if not provided
-                if (empty($data['price_usd']) && $data['price_idr'] > 0) {
-                    $currency_settings = $wpdb->get_row("SELECT usd_rate FROM {$wpdb->prefix}kukang_currency_new WHERE currency_code = 'USD'");
-                    $usd_rate = $currency_settings ? $currency_settings->usd_rate : 0.000067;
-                    $data['price_usd'] = $data['price_idr'] * $usd_rate;
-                }
-
-                $result = $wpdb->update($table_name, $data, array('id' => $doll_id));
-
-                if ($result !== false) {
-                    echo '<div class="notice notice-success is-dismissible"><p>Boneka berhasil diperbarui!</p></div>';
-                } else {
-                    echo '<div class="notice notice-error is-dismissible"><p>Gagal memperbarui boneka: ' . $wpdb->last_error . '</p></div>';
-                }
+                $result = $product_repository->save_product($this->get_product_form_data(), intval($_POST['doll_id'] ?? 0));
+                echo $result['success']
+                    ? '<div class="notice notice-success is-dismissible"><p>' . esc_html($result['message']) . '</p></div>'
+                    : '<div class="notice notice-error is-dismissible"><p>' . esc_html($result['message']) . '</p></div>';
                 break;
 
             case 'delete':
-                $doll_id = intval($_POST['doll_id']);
-                $result = $wpdb->delete($table_name, array('id' => $doll_id));
-
-                if ($result !== false) {
-                    echo '<div class="notice notice-success is-dismissible"><p>Boneka berhasil dihapus!</p></div>';
-                } else {
-                    echo '<div class="notice notice-error is-dismissible"><p>Gagal menghapus boneka: ' . $wpdb->last_error . '</p></div>';
-                }
+                $result = $product_repository->delete_product(intval($_POST['doll_id'] ?? 0));
+                echo $result['success']
+                    ? '<div class="notice notice-success is-dismissible"><p>' . esc_html($result['message']) . '</p></div>'
+                    : '<div class="notice notice-error is-dismissible"><p>' . esc_html($result['message']) . '</p></div>';
                 break;
         }
+    }
+
+    /**
+     * Sanitize product payload from the admin CRUD form.
+     *
+     * @return array
+     */
+    private function get_product_form_data() {
+        return array(
+            'name' => sanitize_text_field($_POST['doll_name'] ?? ''),
+            'sku' => sanitize_text_field($_POST['sku'] ?? ''),
+            'price_idr' => floatval($_POST['price_idr'] ?? 0),
+            'price_usd' => floatval($_POST['price_usd'] ?? 0),
+            'weight_grams' => intval($_POST['weight_grams'] ?? 0),
+            'length_cm' => floatval($_POST['length_cm'] ?? 0),
+            'width_cm' => floatval($_POST['width_cm'] ?? 0),
+            'height_cm' => floatval($_POST['height_cm'] ?? 0),
+            'description' => sanitize_textarea_field($_POST['description'] ?? ''),
+            'image_url' => esc_url_raw($_POST['image_url'] ?? ''),
+            'stock_quantity' => intval($_POST['stock_quantity'] ?? 0),
+            'manage_stock' => isset($_POST['manage_stock']) ? 1 : 0,
+            'is_shippable' => isset($_POST['is_shippable']) ? 1 : 0,
+            'status' => sanitize_text_field($_POST['status'] ?? 'active'),
+            'sort_order' => intval($_POST['sort_order'] ?? 0),
+        );
     }
 
     /**
@@ -1038,25 +1012,23 @@ class YIARI_Admin_Module {
      * @since    3.1.0
      */
     public function render_dolls_management() {
-        global $wpdb;
-
         // Handle form submissions
         if (isset($_POST['action'])) {
             $this->handle_doll_operations();
         }
 
-        // Get all dolls
-        $dolls = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}kukang_dolls_new ORDER BY id ASC");
+        $product_repository = new YIARI_Product_Repository();
+        $dolls = $product_repository->get_all_products();
 
         ?>
         <div class="wrap">
-            <h1 class="wp-heading-inline">🐒 Kelola Boneka Kukang</h1>
-            <a href="#" id="add-new-doll" class="page-title-action">Tambah Boneka Baru</a>
+            <h1 class="wp-heading-inline">📦 Kelola Produk</h1>
+            <a href="#" id="add-new-doll" class="page-title-action">Tambah Produk Baru</a>
             <hr class="wp-header-end">
 
             <!-- Add/Edit Form -->
             <div id="doll-form" style="display: none; background: #fff; padding: 20px; margin: 20px 0; border: 1px solid #c3c4c7; border-radius: 4px;">
-                <h2 id="form-title">Tambah Boneka Baru</h2>
+                <h2 id="form-title">Tambah Produk Baru</h2>
                 <form method="post" id="doll-management-form">
                     <input type="hidden" name="action" value="add">
                     <input type="hidden" name="doll_id" id="doll_id" value="">
@@ -1064,8 +1036,15 @@ class YIARI_Admin_Module {
 
                     <table class="form-table">
                         <tr>
-                            <th scope="row"><label for="doll_name">Nama Boneka</label></th>
+                            <th scope="row"><label for="doll_name">Nama Produk</label></th>
                             <td><input type="text" id="doll_name" name="doll_name" class="regular-text" required></td>
+                        </tr>
+                        <tr>
+                            <th scope="row"><label for="sku">SKU</label></th>
+                            <td>
+                                <input type="text" id="sku" name="sku" class="regular-text">
+                                <p class="description">Opsional. Jika kosong, sistem akan membuat SKU otomatis.</p>
+                            </td>
                         </tr>
                         <tr>
                             <th scope="row"><label for="price_idr">Harga (IDR)</label></th>
@@ -1104,22 +1083,56 @@ class YIARI_Admin_Module {
                         <tr>
                             <th scope="row"><label for="description">Deskripsi</label></th>
                             <td>
-                                <textarea id="description" name="description" class="large-text" rows="4" placeholder="Deskripsi boneka kukang..."></textarea>
+                                <textarea id="description" name="description" class="large-text" rows="4" placeholder="Deskripsi produk..."></textarea>
                             </td>
                         </tr>
                         <tr>
-                            <th scope="row"><label for="is_active">Status</label></th>
+                            <th scope="row"><label for="image_url">URL Gambar</label></th>
+                            <td>
+                                <input type="url" id="image_url" name="image_url" class="regular-text">
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row"><label for="stock_quantity">Stok</label></th>
+                            <td>
+                                <input type="number" id="stock_quantity" name="stock_quantity" class="small-text" min="0" value="0">
+                                <label style="margin-left: 12px;">
+                                    <input type="checkbox" id="manage_stock" name="manage_stock" value="1">
+                                    Kelola stok
+                                </label>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row"><label for="sort_order">Urutan Tampil</label></th>
+                            <td>
+                                <input type="number" id="sort_order" name="sort_order" class="small-text" value="0">
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row">Pengiriman</th>
                             <td>
                                 <label>
-                                    <input type="checkbox" id="is_active" name="is_active" value="1" checked>
-                                    Aktif (tampil di form donasi)
+                                    <input type="checkbox" id="is_shippable" name="is_shippable" value="1" checked>
+                                    Produk perlu dikirim
+                                </label>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row"><label for="status">Status</label></th>
+                            <td>
+                                <select id="status" name="status">
+                                    <option value="active">Aktif</option>
+                                    <option value="inactive">Nonaktif</option>
+                                </select>
+                                <label style="margin-left: 12px;">
+                                    <input type="checkbox" id="is_active" name="is_active" value="1" checked style="display:none;">
                                 </label>
                             </td>
                         </tr>
                     </table>
 
                     <p class="submit">
-                        <button type="submit" class="button-primary" id="save-doll">Simpan Boneka</button>
+                        <button type="submit" class="button-primary" id="save-doll">Simpan Produk</button>
                         <button type="button" class="button" id="cancel-form">Batal</button>
                     </p>
                 </form>
@@ -1128,7 +1141,7 @@ class YIARI_Admin_Module {
             <!-- Dolls Table -->
             <div class="tablenav top">
                 <div class="alignleft actions">
-                    <p>Kelola boneka kukang yang tersedia untuk adopsi</p>
+                    <p>Kelola katalog produk yang tampil di checkout donasi dan pembelian.</p>
                 </div>
             </div>
 
@@ -1136,10 +1149,12 @@ class YIARI_Admin_Module {
                 <thead>
                     <tr>
                         <th scope="col" style="width: 50px;">ID</th>
+                        <th scope="col">SKU</th>
                         <th scope="col">Nama</th>
                         <th scope="col">Harga IDR</th>
                         <th scope="col">Harga USD</th>
                         <th scope="col">Berat</th>
+                        <th scope="col">Stok</th>
                         <th scope="col">Dimensi</th>
                         <th scope="col">Status</th>
                         <th scope="col">Aksi</th>
@@ -1150,13 +1165,15 @@ class YIARI_Admin_Module {
                         <?php foreach ($dolls as $doll): ?>
                         <tr>
                             <td><?php echo intval($doll->id); ?></td>
+                            <td><code><?php echo esc_html($doll->sku); ?></code></td>
                             <td><strong><?php echo esc_html($doll->name); ?></strong></td>
                             <td>Rp <?php echo number_format($doll->price_idr, 0, ',', '.'); ?></td>
                             <td>$<?php echo number_format($doll->price_usd, 2); ?></td>
                             <td><?php echo intval($doll->weight_grams); ?>g</td>
+                            <td><?php echo intval($doll->stock_quantity); ?><?php echo !empty($doll->manage_stock) ? ' (managed)' : ''; ?></td>
                             <td><?php echo intval($doll->length_cm); ?> × <?php echo intval($doll->width_cm); ?> × <?php echo intval($doll->height_cm); ?> cm</td>
                             <td>
-                                <?php if ($doll->is_active): ?>
+                                <?php if (($doll->status ?? 'inactive') === 'active'): ?>
                                     <span style="color: #00a32a;">● Aktif</span>
                                 <?php else: ?>
                                     <span style="color: #d63638;">● Nonaktif</span>
@@ -1166,6 +1183,7 @@ class YIARI_Admin_Module {
                                 <button class="button edit-doll"
                                         data-id="<?php echo $doll->id; ?>"
                                         data-name="<?php echo esc_attr($doll->name); ?>"
+                                        data-sku="<?php echo esc_attr($doll->sku); ?>"
                                         data-price-idr="<?php echo $doll->price_idr; ?>"
                                         data-price-usd="<?php echo $doll->price_usd; ?>"
                                         data-weight="<?php echo $doll->weight_grams; ?>"
@@ -1173,10 +1191,15 @@ class YIARI_Admin_Module {
                                         data-width="<?php echo $doll->width_cm; ?>"
                                         data-height="<?php echo $doll->height_cm; ?>"
                                         data-description="<?php echo esc_attr($doll->description); ?>"
-                                        data-active="<?php echo $doll->is_active; ?>">
+                                        data-image-url="<?php echo esc_attr($doll->image_url); ?>"
+                                        data-stock-quantity="<?php echo intval($doll->stock_quantity); ?>"
+                                        data-manage-stock="<?php echo intval($doll->manage_stock); ?>"
+                                        data-sort-order="<?php echo intval($doll->sort_order); ?>"
+                                        data-is-shippable="<?php echo intval($doll->is_shippable); ?>"
+                                        data-status="<?php echo esc_attr($doll->status); ?>">
                                     Edit
                                 </button>
-                                <form method="post" style="display: inline;" onsubmit="return confirm('Yakin ingin menghapus boneka <?php echo esc_js($doll->name); ?>?')">
+                                <form method="post" style="display: inline;" onsubmit="return confirm('Yakin ingin menghapus produk <?php echo esc_js($doll->name); ?>?')">
                                     <input type="hidden" name="action" value="delete">
                                     <input type="hidden" name="doll_id" value="<?php echo $doll->id; ?>">
                                     <?php wp_nonce_field('doll_management', 'doll_nonce'); ?>
@@ -1187,9 +1210,9 @@ class YIARI_Admin_Module {
                         <?php endforeach; ?>
                     <?php else: ?>
                         <tr>
-                            <td colspan="8" style="text-align: center; padding: 40px;">
-                                <p>Belum ada boneka kukang yang tersedia.</p>
-                                <p><button class="button-primary" onclick="document.getElementById('add-new-doll').click();">Tambah Boneka Pertama</button></p>
+                            <td colspan="10" style="text-align: center; padding: 40px;">
+                                <p>Belum ada produk di katalog.</p>
+                                <p><button class="button-primary" onclick="document.getElementById('add-new-doll').click();">Tambah Produk Pertama</button></p>
                             </td>
                         </tr>
                     <?php endif; ?>
@@ -1202,20 +1225,22 @@ class YIARI_Admin_Module {
             // Show add form
             $('#add-new-doll').click(function(e) {
                 e.preventDefault();
-                $('#form-title').text('Tambah Boneka Baru');
+                $('#form-title').text('Tambah Produk Baru');
                 $('#doll-management-form')[0].reset();
                 $('input[name="action"]').val('add');
                 $('#doll_id').val('');
-                $('#is_active').prop('checked', true);
+                $('#status').val('active');
+                $('#is_shippable').prop('checked', true);
                 $('#doll-form').slideDown();
             });
 
             // Show edit form
             $('.edit-doll').click(function() {
                 var data = $(this).data();
-                $('#form-title').text('Edit Boneka: ' + data.name);
+                $('#form-title').text('Edit Produk: ' + data.name);
                 $('#doll_id').val(data.id);
                 $('#doll_name').val(data.name);
+                $('#sku').val(data.sku);
                 $('#price_idr').val(data.priceIdr);
                 $('#price_usd').val(data.priceUsd);
                 $('#weight_grams').val(data.weight);
@@ -1223,7 +1248,12 @@ class YIARI_Admin_Module {
                 $('#width_cm').val(data.width);
                 $('#height_cm').val(data.height);
                 $('#description').val(data.description);
-                $('#is_active').prop('checked', data.active == '1');
+                $('#image_url').val(data.imageUrl);
+                $('#stock_quantity').val(data.stockQuantity);
+                $('#manage_stock').prop('checked', data.manageStock == '1');
+                $('#sort_order').val(data.sortOrder);
+                $('#is_shippable').prop('checked', data.isShippable == '1');
+                $('#status').val(data.status || 'active');
                 $('input[name="action"]').val('edit');
                 $('#doll-form').slideDown();
 

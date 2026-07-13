@@ -29,7 +29,7 @@ Refactor plugin agar mendukung katalog merchandise universal, payment Midtrans-o
   `id`, `sku`, `name`, `slug`, `description`, `price_idr`, `price_usd`, `weight_gram`, `length`, `width`, `height`, `is_shippable`, `stock`, `status`, `image`, `sort_order`.
 - Tambahkan manager produk di wp-admin:
   pencarian, filter aktif/nonaktif, stok, berat/dimensi, gambar, dan urutan tampil.
-- Untuk produk buku, gunakan model produk + tipe item order, bukan varian yang membingungkan.
+- Untuk produk donasi, gunakan model produk + tipe item order, bukan varian yang membingungkan.
   Saran:
   - produk tetap satu, mis. `Buku YIARI`
   - item order menyimpan `fulfillment_type`:
@@ -123,7 +123,7 @@ Refactor plugin agar mendukung katalog merchandise universal, payment Midtrans-o
 ## Keputusan Sementara
 - Export Excel ke KiriminAja tidak wajib jika integrasi API create AWB berjalan stabil.
 - Export manual tetap bisa dipertahankan sebagai fallback operasional/admin, bukan alur utama.
-- Untuk flow buku, lebih baik gunakan `fulfillment_type` pada item order daripada membuat varian produk “buku untuk sendiri” dan “buku donasi”. Varian akan membuat katalog, stok, dan laporan menjadi lebih rumit tanpa manfaat yang jelas.
+- Untuk flow donasi produk, lebih baik gunakan `fulfillment_type` pada item order daripada membuat varian produk “untuk sendiri” dan “untuk donasi”. Varian akan membuat katalog, stok, dan laporan menjadi lebih rumit tanpa manfaat yang jelas.
 
 ## Diagram Flow Order
 ```mermaid
