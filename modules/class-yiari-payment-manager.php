@@ -194,24 +194,23 @@ class YIARI_Payment_Manager {
             )
         );
         
-        // Prepare item details
+        // Prepare item details from the normalized-table-first catalog.
         $item_details = array();
-        global $wpdb;
-        $kukang_table = $wpdb->prefix . 'kukang_dolls_new';
-
-        // Use appropriate price column based on currency
-        $price_column = (isset($donation_data['currency']) && $donation_data['currency'] === 'USD') ? 'price_usd' : 'price_idr';
-        $dolls = $wpdb->get_results("SELECT name, $price_column as price FROM $kukang_table ORDER BY id ASC");
+        $product_repository = new YIARI_Product_Repository();
+        $dolls = $product_repository->get_active_products();
 
         foreach ($dolls as $doll) {
             $doll_name = strtolower($doll->name);
             $qty = isset($donation_data[$doll_name . '_qty']) ? intval($donation_data[$doll_name . '_qty']) : 0;
 
             if ($qty > 0) {
-                $price = intval($doll->price);
+                $price = (isset($donation_data['currency']) && $donation_data['currency'] === 'USD')
+                    ? floatval($doll->price_usd ?? 0)
+                    : floatval($doll->price_idr ?? 0);
+                $price = intval($price);
                 // For USD transactions, convert to IDR for Midtrans
                 if (isset($donation_data['currency']) && $donation_data['currency'] === 'USD' && isset($donation_data['exchange_rate'])) {
-                    $price = intval($doll->price / $donation_data['exchange_rate']);
+                    $price = intval($price / $donation_data['exchange_rate']);
                 }
 
                 $item_details[] = array(
@@ -372,7 +371,7 @@ class YIARI_Payment_Manager {
 
             // Verify transaction exists in our database
             $existing_transaction = $wpdb->get_row($wpdb->prepare(
-                "SELECT id, transaction_status FROM $table_name WHERE order_id = %s",
+                "SELECT id, transaction_status, order_status FROM $table_name WHERE order_id = %s",
                 $order_id
             ));
 
@@ -445,6 +444,15 @@ class YIARI_Payment_Manager {
                 error_log("- Old Status: " . $existing_transaction->transaction_status);
                 error_log("- New Status: $transaction_status");
                 error_log("- Rows affected: $updated");
+
+                $order_service = new YIARI_Order_Service();
+                $sync_result = $order_service->sync_midtrans_callback($order_id, array(
+                    'transaction_id' => $transaction_id,
+                    'transaction_status' => $transaction_status,
+                    'fraud_status' => $fraud_status,
+                    'payment_type' => isset($notif->payment_type) ? $notif->payment_type : '',
+                ));
+                error_log("Normalized order sync result: " . wp_json_encode($sync_result));
 
                 http_response_code(200);
                 echo "OK";

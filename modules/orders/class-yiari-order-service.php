@@ -104,6 +104,92 @@ class YIARI_Order_Service {
     }
 
     /**
+     * Synchronize normalized order payment and fulfillment state from a Midtrans callback.
+     *
+     * @param string $order_number
+     * @param array  $callback_data
+     * @return array
+     */
+    public function sync_midtrans_callback($order_number, $callback_data) {
+        global $wpdb;
+
+        $orders_table = $wpdb->prefix . 'yiari_orders';
+        $status_logs_table = $wpdb->prefix . 'yiari_order_status_logs';
+        $order = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT * FROM {$orders_table} WHERE order_number = %s LIMIT 1",
+                $order_number
+            )
+        );
+
+        if (!$order) {
+            return array('success' => false, 'reason' => 'order_not_found');
+        }
+
+        $new_payment_status = $this->map_legacy_payment_status($callback_data['transaction_status'] ?? 'pending');
+        $new_fulfillment_status = $this->map_midtrans_to_fulfillment_status(
+            $new_payment_status,
+            $order->fulfillment_status
+        );
+
+        $update_data = array(
+            'payment_reference' => $callback_data['transaction_id'] ?? $order->payment_reference,
+            'payment_type' => $callback_data['payment_type'] ?? $order->payment_type,
+            'payment_status' => $new_payment_status,
+            'fraud_status' => $callback_data['fraud_status'] ?? $order->fraud_status,
+            'fulfillment_status' => $new_fulfillment_status,
+            'updated_at' => current_time('mysql'),
+        );
+
+        if ($new_payment_status === 'paid' && empty($order->settlement_time)) {
+            $update_data['settlement_time'] = current_time('mysql');
+        }
+
+        $wpdb->update($orders_table, $update_data, array('id' => $order->id), null, array('%d'));
+
+        if ($order->payment_status !== $new_payment_status) {
+            $wpdb->insert(
+                $status_logs_table,
+                array(
+                    'order_id' => $order->id,
+                    'source' => 'midtrans_callback',
+                    'status_type' => 'payment',
+                    'previous_status' => $order->payment_status,
+                    'new_status' => $new_payment_status,
+                    'message' => 'Payment status synchronized from Midtrans callback',
+                    'context_payload' => wp_json_encode($callback_data),
+                    'created_at' => current_time('mysql'),
+                ),
+                array('%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s')
+            );
+        }
+
+        if ($order->fulfillment_status !== $new_fulfillment_status) {
+            $wpdb->insert(
+                $status_logs_table,
+                array(
+                    'order_id' => $order->id,
+                    'source' => 'midtrans_callback',
+                    'status_type' => 'fulfillment',
+                    'previous_status' => $order->fulfillment_status,
+                    'new_status' => $new_fulfillment_status,
+                    'message' => 'Fulfillment status synchronized from Midtrans callback',
+                    'context_payload' => wp_json_encode($callback_data),
+                    'created_at' => current_time('mysql'),
+                ),
+                array('%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s')
+            );
+        }
+
+        return array(
+            'success' => true,
+            'order_id' => (int) $order->id,
+            'payment_status' => $new_payment_status,
+            'fulfillment_status' => $new_fulfillment_status,
+        );
+    }
+
+    /**
      * Build normalized items from legacy qty form data.
      *
      * @param array $checkout_data
@@ -199,6 +285,31 @@ class YIARI_Order_Service {
         }
 
         return 'pending_payment';
+    }
+
+    /**
+     * Map payment state to normalized fulfillment state without regressing shipped orders.
+     *
+     * @param string $payment_status
+     * @param string $current_fulfillment_status
+     * @return string
+     */
+    private function map_midtrans_to_fulfillment_status($payment_status, $current_fulfillment_status) {
+        $terminal_statuses = array('awb_created', 'shipped', 'delivered', 'returned');
+
+        if (in_array($current_fulfillment_status, $terminal_statuses, true)) {
+            return $current_fulfillment_status;
+        }
+
+        if ($payment_status === 'paid') {
+            return 'paid';
+        }
+
+        if ($payment_status === 'canceled') {
+            return 'canceled';
+        }
+
+        return 'draft';
     }
 }
 ?>

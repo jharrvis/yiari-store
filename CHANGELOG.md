@@ -12,13 +12,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Repository-local skill `.codex/skills/yiari-wordpress-plugin-dev/SKILL.md` for consistent plugin development practices in this project.
 - Legacy data migrator for copying `kukang_dolls_new` and `kukang_transactions_new` into the normalized YIARI tables without deleting old data.
 - Product repository and order service for normalized-table-first catalog reads and dual-write order persistence.
+- Next-generation schema migrator for normalized `products`, `orders`, `order_items`, `shipments`, and `order_status_logs` tables without removing legacy tables yet.
+- Midtrans callback synchronization into normalized order payment and fulfillment states.
 
 ### Changed
 - Updated implementation plans to support book purchase plus donated-book flow and donation motivation capture.
 - Elevated repository guidance to require changelog updates for all material code, schema, workflow, and documentation changes.
-
-### Added
-- Next-generation schema migrator for normalized `products`, `orders`, `order_items`, `shipments`, and `order_status_logs` tables without removing legacy tables yet.
+- Payment item generation now reads products through the normalized-table-first catalog layer instead of directly from the legacy dolls table.
 
 ## [3.1.1] - 2025-09-26
 
