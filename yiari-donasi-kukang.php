@@ -37,11 +37,22 @@ spl_autoload_register(function($class_name) {
     $file_name = str_replace('_', '-', strtolower($class_name)) . '.php';
     $class_file_name = 'class-' . str_replace('_', '-', strtolower($class_name)) . '.php';
 
-    // Check in modules directory
-    $module_file = YIARI_DONASI_KUKANG_PATH . 'modules/' . $class_file_name;
-    if (file_exists($module_file)) {
-        require_once $module_file;
-        return;
+    // Check in modules directory and new domain subdirectories
+    $module_paths = array(
+        YIARI_DONASI_KUKANG_PATH . 'modules/' . $class_file_name,
+        YIARI_DONASI_KUKANG_PATH . 'modules/catalog/' . $class_file_name,
+        YIARI_DONASI_KUKANG_PATH . 'modules/orders/' . $class_file_name,
+        YIARI_DONASI_KUKANG_PATH . 'modules/payments/' . $class_file_name,
+        YIARI_DONASI_KUKANG_PATH . 'modules/shipping/' . $class_file_name,
+        YIARI_DONASI_KUKANG_PATH . 'modules/notifications/' . $class_file_name,
+        YIARI_DONASI_KUKANG_PATH . 'modules/legacy/' . $class_file_name,
+    );
+
+    foreach ($module_paths as $module_file) {
+        if (file_exists($module_file)) {
+            require_once $module_file;
+            return;
+        }
     }
     
     // Check in includes directory

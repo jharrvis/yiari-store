@@ -93,63 +93,12 @@ class YIARI_Form_Manager {
      * @return   string    Form HTML
      */
     private function get_indonesian_form_html() {
-        global $wpdb;
-        $kukang_table = $wpdb->prefix . 'kukang_dolls_new';
-
-        // Ensure table exists
+        // Ensure legacy tables still exist while the new schema becomes primary.
         $database_manager = new YIARI_Database_Manager();
         $database_manager->create_tables();
 
-        // Try to get dolls with new columns, fallback to basic columns if needed
-        $dolls = $wpdb->get_results("SELECT name, price_idr as price, weight_grams, length_cm, width_cm, height_cm, description FROM $kukang_table WHERE is_active = 1 ORDER BY id ASC");
-
-        // If that failed (missing columns), try basic query
-        if (!$dolls || $wpdb->last_error) {
-            error_log("Kukang dolls query with new columns failed: " . $wpdb->last_error);
-            error_log("Falling back to basic query...");
-            $dolls = $wpdb->get_results("SELECT name, price_idr as price FROM $kukang_table ORDER BY id ASC");
-
-            // Add default values for missing properties
-            if ($dolls) {
-                foreach ($dolls as $doll) {
-                    $doll->weight_grams = 150;
-                    $doll->length_cm = 20;
-                    $doll->width_cm = 15;
-                    $doll->height_cm = 10;
-                    $doll->description = '';
-                }
-            }
-        }
-
-        // If still no dolls, there's a bigger problem
-        if (!$dolls) {
-            error_log("No dolls found in database! Creating default data...");
-
-            // Try to insert default data
-            $default_dolls = array(
-                array('name' => 'Regina', 'price_idr' => 150000),
-                array('name' => 'Jagger', 'price_idr' => 150000),
-                array('name' => 'Butros', 'price_idr' => 150000),
-                array('name' => 'Eid', 'price_idr' => 150000),
-                array('name' => 'Anoda', 'price_idr' => 150000),
-            );
-
-            foreach ($default_dolls as $doll) {
-                $wpdb->insert($kukang_table, $doll);
-            }
-
-            // Try query again
-            $dolls = $wpdb->get_results("SELECT name, price_idr as price FROM $kukang_table ORDER BY id ASC");
-            if ($dolls) {
-                foreach ($dolls as $doll) {
-                    $doll->weight_grams = 150;
-                    $doll->length_cm = 20;
-                    $doll->width_cm = 15;
-                    $doll->height_cm = 10;
-                    $doll->description = '';
-                }
-            }
-        }
+        $product_repository = new YIARI_Product_Repository();
+        $dolls = $product_repository->get_active_products();
 
         ob_start();
         ?>
@@ -1379,7 +1328,8 @@ class YIARI_Form_Manager {
         
         // Check if any dolls selected
         $has_dolls = false;
-        $dolls = $wpdb->get_results("SELECT name FROM {$wpdb->prefix}kukang_dolls_new WHERE is_active = 1 ORDER BY id ASC");
+        $product_repository = new YIARI_Product_Repository();
+        $dolls = $product_repository->get_active_products();
         foreach ($dolls as $doll) {
             $doll_name = strtolower($doll->name);
             $qty = isset($form_data[$doll_name . '_qty']) ? intval($form_data[$doll_name . '_qty']) : 0;
@@ -1524,10 +1474,9 @@ class YIARI_Form_Manager {
                 'currency' => 'IDR'
             );
 
-            // Add doll quantities and calculate totals
-            global $wpdb;
-            $dolls_table = $wpdb->prefix . 'kukang_dolls_new';
-            $dolls = $wpdb->get_results("SELECT name, price_idr FROM $dolls_table WHERE is_active = 1");
+            // Add product quantities and calculate totals
+            $product_repository = new YIARI_Product_Repository();
+            $dolls = $product_repository->get_active_products();
 
             $total_items = 0;
             $subtotal = 0;
@@ -1539,7 +1488,7 @@ class YIARI_Form_Manager {
                     $quantity = intval($_POST[$qty_key]);
                     $donation_data[$qty_key] = $quantity;
                     $total_items += $quantity;
-                    $subtotal += $quantity * $doll->price_idr;
+                    $subtotal += $quantity * floatval($doll->price_idr ?? 0);
                 }
             }
 
@@ -1664,7 +1613,8 @@ class YIARI_Form_Manager {
         // Check if any dolls selected
         $subtotal = 0;
         $total_weight = 0;
-        $dolls = $wpdb->get_results("SELECT name, price_idr, weight_grams FROM {$wpdb->prefix}kukang_dolls_new WHERE is_active = 1");
+        $product_repository = new YIARI_Product_Repository();
+        $dolls = $product_repository->get_active_products();
         $selected_dolls = array();
 
         foreach ($dolls as $doll) {
@@ -1673,8 +1623,8 @@ class YIARI_Form_Manager {
 
             if ($qty > 0) {
                 $selected_dolls[strtolower($doll->name)] = $qty;
-                $subtotal += $qty * $doll->price_idr;
-                $total_weight += $qty * ($doll->weight_grams ?: 200);
+                $subtotal += $qty * floatval($doll->price_idr ?? 0);
+                $total_weight += $qty * intval($doll->weight_grams ?? 200);
             }
         }
 
@@ -1729,6 +1679,12 @@ class YIARI_Form_Manager {
         if (!$inserted) {
             return array('success' => false, 'message' => 'Gagal menyimpan data transaksi');
         }
+
+        $order_service = new YIARI_Order_Service();
+        $order_service->upsert_normalized_order($transaction_data, array(
+            'payment_status' => 'pending_payment',
+            'fulfillment_status' => 'draft',
+        ));
 
         // Prepare payment data
         $payment_data = array(
@@ -1804,7 +1760,8 @@ class YIARI_Form_Manager {
         // Check if any dolls selected
         $subtotal_usd = 0;
         $total_weight = 0;
-        $dolls = $wpdb->get_results("SELECT name, price_usd, weight_grams FROM {$wpdb->prefix}kukang_dolls_new WHERE is_active = 1");
+        $product_repository = new YIARI_Product_Repository();
+        $dolls = $product_repository->get_active_products();
         $selected_dolls = array();
 
         foreach ($dolls as $doll) {
@@ -1813,8 +1770,8 @@ class YIARI_Form_Manager {
 
             if ($qty > 0) {
                 $selected_dolls[strtolower($doll->name)] = $qty;
-                $subtotal_usd += $qty * $doll->price_usd;
-                $total_weight += $qty * ($doll->weight_grams ?: 200);
+                $subtotal_usd += $qty * floatval($doll->price_usd ?? 0);
+                $total_weight += $qty * intval($doll->weight_grams ?? 200);
             }
         }
 
@@ -1859,7 +1816,7 @@ class YIARI_Form_Manager {
             'gross_amount' => intval($total_amount_idr),
             'currency' => 'USD',
             'exchange_rate' => $form_data['exchange_rate'],
-            'amount_usd' => $total_amount_usd,
+            'usd_amount' => $total_amount_usd,
             'transaction_status' => 'pending',
             'created_at' => current_time('mysql')
         );
@@ -1874,6 +1831,12 @@ class YIARI_Form_Manager {
         if (!$inserted) {
             return array('success' => false, 'message' => 'Failed to save transaction data');
         }
+
+        $order_service = new YIARI_Order_Service();
+        $order_service->upsert_normalized_order($transaction_data, array(
+            'payment_status' => 'pending_payment',
+            'fulfillment_status' => 'draft',
+        ));
 
         // Prepare payment data for Midtrans (in IDR)
         $payment_data = array(
@@ -2490,6 +2453,13 @@ class YIARI_Form_Manager {
         } else {
             error_log("✅ Transaction saved successfully with ID: " . $wpdb->insert_id);
         }
+
+        $order_service = new YIARI_Order_Service();
+        $order_service->upsert_normalized_order($transaction_data, array(
+            'payment_status' => 'pending_payment',
+            'fulfillment_status' => 'draft',
+            'payment_reference' => $payment_result['snap_token'] ?? null,
+        ));
     }
 }
 ?>
