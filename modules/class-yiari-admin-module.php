@@ -153,40 +153,13 @@ class YIARI_Admin_Module {
      * @since    3.1.0
      */
     private function handle_export_request() {
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'kukang_transactions_new';
-
-        // Build WHERE clause
-        $where_conditions = array();
-
-        $search_term = isset($_POST['export_search']) ? sanitize_text_field($_POST['export_search']) : '';
-        if (!empty($search_term)) {
-            $where_conditions[] = $wpdb->prepare("CONCAT(order_id, customer_name, email, phone, address, city, province) LIKE %s", '%' . $wpdb->esc_like($search_term) . '%');
-        }
-
-        $bulan = isset($_POST['export_bulan']) ? sanitize_text_field($_POST['export_bulan']) : '';
-        if (!empty($bulan)) {
-            $where_conditions[] = $wpdb->prepare("MONTH(created_at) = %s", $bulan);
-        }
-
-        $tahun = isset($_POST['export_tahun']) ? sanitize_text_field($_POST['export_tahun']) : '';
-        if (!empty($tahun)) {
-            $where_conditions[] = $wpdb->prepare("YEAR(created_at) = %s", $tahun);
-        }
-
-        $status = isset($_POST['export_status']) ? sanitize_text_field($_POST['export_status']) : '';
-        if (!empty($status)) {
-            $where_conditions[] = $wpdb->prepare("transaction_status = %s", $status);
-        }
-
-        $where_clause = '';
-        if (!empty($where_conditions)) {
-            $where_clause = 'WHERE ' . implode(' AND ', $where_conditions);
-        }
-
-        // Get filtered data for export
-        $export_query = "SELECT * FROM $table_name $where_clause ORDER BY created_at DESC";
-        $donasi_data = $wpdb->get_results($export_query, ARRAY_A);
+        $filters = array(
+            'search' => sanitize_text_field($_POST['export_search'] ?? ''),
+            'bulan' => sanitize_text_field($_POST['export_bulan'] ?? ''),
+            'tahun' => sanitize_text_field($_POST['export_tahun'] ?? ''),
+            'status' => sanitize_text_field($_POST['export_status'] ?? ''),
+        );
+        $donasi_data = $this->get_admin_orders($filters);
 
         if ($donasi_data && count($donasi_data) > 0) {
             $this->export_to_csv($donasi_data);
@@ -203,7 +176,7 @@ class YIARI_Admin_Module {
      * @param    array    $data    Data to export
      */
     private function export_to_csv($data) {
-        $filename = 'donasi_kukang_' . date('Y-m-d_H-i') . '.csv';
+        $filename = 'yiari_orders_' . date('Y-m-d_H-i') . '.csv';
 
         // Set headers for CSV download
         header('Content-Type: text/csv; charset=utf-8');
@@ -217,9 +190,9 @@ class YIARI_Admin_Module {
         $headers = [
             'Order ID', 'Tanggal', 'Customer', 'Email', 'Phone', 'Alamat',
             'Kota', 'Provinsi', 'Kode Pos', 'Payment Status', 'Payment Method',
-            'Bank', 'Total Amount', 'Shipping Cost', 'Regina Qty', 'Jagger Qty',
-            'Butros Qty', 'Eid Qty', 'Anoda Qty', 'Total Items', 'Weight',
-            'Order Status', 'Tracking Number'
+            'Total Amount', 'Shipping Cost', 'Self Items', 'Donation Items',
+            'Total Items', 'Weight', 'Order Flow', 'Fulfillment Status',
+            'Tracking Number', 'Items Summary', 'Donation Motivation'
         ];
 
         // Output BOM for UTF-8
@@ -238,20 +211,19 @@ class YIARI_Admin_Module {
                 $row['city'] ?? '',
                 $row['province'] ?? '',
                 $row['postal_code'] ?? '',
-                $row['transaction_status'] ?? '',
+                $row['payment_status'] ?? '',
                 $row['payment_type'] ?? '',
-                $row['bank'] ?? '',
-                isset($row['gross_amount']) ? 'Rp ' . number_format($row['gross_amount'], 0, ',', '.') : '',
-                isset($row['shipping_cost']) ? 'Rp ' . number_format($row['shipping_cost'], 0, ',', '.') : '',
-                $row['regina_qty'] ?? 0,
-                $row['jagger_qty'] ?? 0,
-                $row['butros_qty'] ?? 0,
-                $row['eid_qty'] ?? 0,
-                $row['anoda_qty'] ?? 0,
-                $row['total_items'] ?? 0,
-                isset($row['total_weight']) ? $row['total_weight'] . 'g' : '',
-                $row['order_status'] ?? 'processing',
-                $row['tracking_number'] ?? ''
+                isset($row['total_amount']) ? $this->format_order_amount_for_export($row) : '',
+                isset($row['shipping_amount']) ? $this->format_shipping_amount_for_export($row) : '',
+                intval($row['self_item_count'] ?? 0),
+                intval($row['donation_item_count'] ?? 0),
+                intval($row['total_item_count'] ?? 0),
+                isset($row['total_weight_grams']) ? intval($row['total_weight_grams']) . 'g' : '',
+                $row['order_flow_type'] ?? 'self_only',
+                $row['fulfillment_status'] ?? 'draft',
+                $row['tracking_number'] ?? '',
+                $row['items_summary'] ?? '',
+                $this->format_donation_motivation_for_export($row)
             ];
             fputcsv($output, $export_row);
         }
@@ -352,44 +324,13 @@ class YIARI_Admin_Module {
      * @since    3.1.0
      */
     private function display_donation_table() {
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'kukang_transactions_new';
-
-        // Ensure table exists
-        $database_manager = new YIARI_Database_Manager();
-        $database_manager->create_tables();
-
-        // Build WHERE clause with proper sanitization
-        $where_conditions = array();
-
-        $search_term = isset($_GET['search']) ? sanitize_text_field($_GET['search']) : '';
-        if (!empty($search_term)) {
-            $where_conditions[] = $wpdb->prepare("CONCAT(order_id, customer_name, email, phone, address, city, province) LIKE %s", '%' . $wpdb->esc_like($search_term) . '%');
-        }
-
-        $bulan = isset($_GET['bulan']) ? sanitize_text_field($_GET['bulan']) : '';
-        if (!empty($bulan)) {
-            $where_conditions[] = $wpdb->prepare("MONTH(created_at) = %s", $bulan);
-        }
-
-        $tahun = isset($_GET['tahun']) ? sanitize_text_field($_GET['tahun']) : '';
-        if (!empty($tahun)) {
-            $where_conditions[] = $wpdb->prepare("YEAR(created_at) = %s", $tahun);
-        }
-
-        $status = isset($_GET['status']) ? sanitize_text_field($_GET['status']) : '';
-        if (!empty($status)) {
-            $where_conditions[] = $wpdb->prepare("transaction_status = %s", $status);
-        }
-
-        $where_clause = '';
-        if (!empty($where_conditions)) {
-            $where_clause = 'WHERE ' . implode(' AND ', $where_conditions);
-        }
-
-        // Get filtered data
-        $query = "SELECT * FROM $table_name $where_clause ORDER BY created_at DESC";
-        $donasi_data = $wpdb->get_results($query, ARRAY_A);
+        $filters = array(
+            'search' => sanitize_text_field($_GET['search'] ?? ''),
+            'bulan' => sanitize_text_field($_GET['bulan'] ?? ''),
+            'tahun' => sanitize_text_field($_GET['tahun'] ?? ''),
+            'status' => sanitize_text_field($_GET['status'] ?? ''),
+        );
+        $donasi_data = $this->get_admin_orders($filters);
 
         if ($donasi_data && count($donasi_data) > 0) {
             // Export form with current filter parameters
@@ -414,14 +355,178 @@ class YIARI_Admin_Module {
             echo '</form>';
 
             // Show record count
-            echo '<span style="color: #666; font-style: italic;">Menampilkan ' . count($donasi_data) . ' donasi</span>';
+            echo '<span style="color: #666; font-style: italic;">Menampilkan ' . count($donasi_data) . ' order</span>';
             echo '</div>';
 
             // Display table
             $this->render_donations_table($donasi_data);
         } else {
-            echo '<div class="notice notice-warning inline"><p>Tidak ada data donasi ditemukan.</p></div>';
+            echo '<div class="notice notice-warning inline"><p>Tidak ada data order ditemukan.</p></div>';
         }
+    }
+
+    /**
+     * Query normalized orders for admin list and exports.
+     *
+     * @param array $filters
+     * @return array
+     */
+    private function get_admin_orders($filters) {
+        global $wpdb;
+
+        $orders_table = $wpdb->prefix . 'yiari_orders';
+        $order_items_table = $wpdb->prefix . 'yiari_order_items';
+        $shipments_table = $wpdb->prefix . 'yiari_shipments';
+        $legacy_table = $wpdb->prefix . 'kukang_transactions_new';
+
+        $where_conditions = array('1=1');
+
+        if (!empty($filters['search'])) {
+            $like = '%' . $wpdb->esc_like($filters['search']) . '%';
+            $where_conditions[] = $wpdb->prepare(
+                "(
+                    o.order_number LIKE %s OR
+                    o.donor_name LIKE %s OR
+                    o.donor_email LIKE %s OR
+                    o.donor_phone LIKE %s OR
+                    o.address LIKE %s OR
+                    o.city LIKE %s OR
+                    o.province LIKE %s
+                )",
+                $like,
+                $like,
+                $like,
+                $like,
+                $like,
+                $like,
+                $like
+            );
+        }
+
+        if (!empty($filters['bulan'])) {
+            $where_conditions[] = $wpdb->prepare("MONTH(o.created_at) = %d", intval($filters['bulan']));
+        }
+
+        if (!empty($filters['tahun'])) {
+            $where_conditions[] = $wpdb->prepare("YEAR(o.created_at) = %d", intval($filters['tahun']));
+        }
+
+        if (!empty($filters['status'])) {
+            $status_map = array(
+                'settlement' => 'paid',
+                'capture' => 'paid',
+                'pending' => 'pending_payment',
+                'failure' => 'canceled',
+                'deny' => 'canceled',
+                'cancel' => 'canceled',
+                'expire' => 'canceled',
+                'refund' => 'refunded',
+            );
+            $normalized_status = $status_map[$filters['status']] ?? $filters['status'];
+            $where_conditions[] = $wpdb->prepare("o.payment_status = %s", $normalized_status);
+        }
+
+        $where_sql = implode(' AND ', $where_conditions);
+
+        $query = "
+            SELECT
+                o.id,
+                o.order_number AS order_id,
+                o.legacy_order_id,
+                o.donor_name AS customer_name,
+                o.donor_email AS email,
+                o.donor_phone AS phone,
+                o.address,
+                o.province,
+                o.city,
+                o.postal_code,
+                o.currency,
+                o.subtotal_amount,
+                o.shipping_amount,
+                o.total_amount,
+                o.total_weight_grams,
+                o.self_item_count,
+                o.donation_item_count,
+                o.order_flow_type,
+                o.payment_type,
+                o.payment_status,
+                o.fulfillment_status,
+                o.donation_motivation_code,
+                o.donation_motivation_other,
+                o.created_at,
+                o.settlement_time,
+                o.notes,
+                MAX(lt.usd_amount) AS legacy_usd_amount,
+                MAX(lt.exchange_rate) AS legacy_exchange_rate,
+                MAX(s.tracking_number) AS tracking_number,
+                MAX(s.courier_code) AS courier,
+                MAX(s.service_type) AS service,
+                MAX(lt.id) AS legacy_transaction_id,
+                COALESCE(SUM(i.qty), 0) AS total_item_count,
+                GROUP_CONCAT(
+                    CONCAT(
+                        i.product_name_snapshot,
+                        ' x',
+                        i.qty,
+                        CASE
+                            WHEN i.fulfillment_type = 'donation_purchase' THEN ' [donation]'
+                            ELSE ''
+                        END
+                    )
+                    ORDER BY i.id ASC SEPARATOR ' | '
+                ) AS items_summary
+            FROM {$orders_table} o
+            LEFT JOIN {$order_items_table} i ON i.order_id = o.id
+            LEFT JOIN {$shipments_table} s ON s.order_id = o.id
+            LEFT JOIN {$legacy_table} lt ON lt.order_id = o.order_number
+            WHERE {$where_sql}
+            GROUP BY o.id
+            ORDER BY o.created_at DESC
+        ";
+
+        return $wpdb->get_results($query, ARRAY_A);
+    }
+
+    /**
+     * Format total amount for export.
+     *
+     * @param array $row
+     * @return string
+     */
+    private function format_order_amount_for_export($row) {
+        if (($row['currency'] ?? 'IDR') === 'USD' && !empty($row['legacy_usd_amount'])) {
+            return '$' . number_format((float) $row['legacy_usd_amount'], 2);
+        }
+
+        return 'Rp ' . number_format((float) $row['total_amount'], 0, ',', '.');
+    }
+
+    /**
+     * Format shipping amount for export.
+     *
+     * @param array $row
+     * @return string
+     */
+    private function format_shipping_amount_for_export($row) {
+        if (($row['currency'] ?? 'IDR') === 'USD' && !empty($row['legacy_exchange_rate'])) {
+            return '$' . number_format((float) $row['shipping_amount'] * (float) $row['legacy_exchange_rate'], 2);
+        }
+
+        return 'Rp ' . number_format((float) $row['shipping_amount'], 0, ',', '.');
+    }
+
+    /**
+     * Format donation motivation for export.
+     *
+     * @param array $row
+     * @return string
+     */
+    private function format_donation_motivation_for_export($row) {
+        if (!empty($row['donation_motivation_other'])) {
+            return (string) $row['donation_motivation_other'];
+        }
+
+        return (string) ($row['donation_motivation_code'] ?? '');
     }
 
     /**
@@ -451,7 +556,7 @@ class YIARI_Admin_Module {
             echo '<div class="order-id-block">';
             echo '<strong style="font-size: 13px; color: #2271b1;">' . esc_html($donasi['order_id']) . '</strong><br>';
             echo '<small style="color: #666;">' . date('d/m/Y H:i', strtotime($donasi['created_at'])) . '</small>';
-            if ($donasi['settlement_time']) {
+            if (!empty($donasi['settlement_time'])) {
                 echo '<br><small style="color: green;">✅ Paid: ' . date('d/m H:i', strtotime($donasi['settlement_time'])) . '</small>';
             }
             echo '</div>';
@@ -467,16 +572,12 @@ class YIARI_Admin_Module {
 
             // Items summary
             echo '<div class="items-block" style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #f0f0f0;">';
-            $dolls = array();
-            if ($donasi['regina_qty'] > 0) $dolls[] = 'Regina: ' . intval($donasi['regina_qty']);
-            if ($donasi['jagger_qty'] > 0) $dolls[] = 'Jagger: ' . intval($donasi['jagger_qty']);
-            if ($donasi['butros_qty'] > 0) $dolls[] = 'Butros: ' . intval($donasi['butros_qty']);
-            if ($donasi['eid_qty'] > 0) $dolls[] = 'Eid: ' . intval($donasi['eid_qty']);
-            if ($donasi['anoda_qty'] > 0) $dolls[] = 'Anoda: ' . intval($donasi['anoda_qty']);
-
-            if (count($dolls) > 0) {
-                echo '<small style="color: #666;">🐒 ' . implode(', ', $dolls) . '</small><br>';
-                echo '<small><strong>Total: ' . intval($donasi['total_items']) . ' pcs (' . intval($donasi['total_weight']) . 'g)</strong></small>';
+            if (!empty($donasi['items_summary'])) {
+                echo '<small style="color: #666;">📦 ' . esc_html($donasi['items_summary']) . '</small><br>';
+                echo '<small><strong>Total: ' . intval($donasi['total_item_count']) . ' pcs (' . intval($donasi['total_weight_grams']) . 'g)</strong></small>';
+                if (intval($donasi['donation_item_count'] ?? 0) > 0) {
+                    echo '<br><small style="color: #2271b1;">🎁 Donasi item: ' . intval($donasi['donation_item_count']) . '</small>';
+                }
             } else {
                 echo '<small style="color: #999; font-style: italic;">No items data</small>';
             }
@@ -485,29 +586,27 @@ class YIARI_Admin_Module {
 
             // Column 3: Payment & Status
             echo '<td class="col-payment">';
-            $status = $donasi['transaction_status'];
+            $status = $donasi['payment_status'];
             $status_icon = '';
             $status_color = '';
             switch (strtolower($status)) {
-                case 'settlement':
-                case 'capture':
+                case 'paid':
                     $status_icon = '✅';
                     $status_color = '#27ae60';
                     break;
-                case 'pending':
+                case 'pending_payment':
                     $status_icon = '⏳';
                     $status_color = '#f39c12';
                     break;
-                case 'deny':
-                case 'failure':
-                    $status_icon = '❌';
-                    $status_color = '#e74c3c';
-                    break;
-                case 'cancel':
+                case 'canceled':
                     $status_icon = '🚫';
                     $status_color = '#e74c3c';
                     break;
-                case 'expire':
+                case 'refunded':
+                    $status_icon = '💰';
+                    $status_color = '#8e44ad';
+                    break;
+                case 'expired':
                     $status_icon = '⏰';
                     $status_color = '#95a5a6';
                     break;
@@ -523,19 +622,15 @@ class YIARI_Admin_Module {
 
             // Amount
             $currency = $donasi['currency'] ?? 'IDR';
-            if ($currency === 'USD' && isset($donasi['usd_amount'])) {
-                echo '<strong style="color: #2271b1;">$' . number_format($donasi['usd_amount'], 2) . '</strong><br>';
-                echo '<small style="color: #666;">≈ Rp ' . number_format($donasi['gross_amount'], 0, ',', '.') . '</small>';
+            if ($currency === 'USD' && !empty($donasi['legacy_usd_amount'])) {
+                echo '<strong style="color: #2271b1;">$' . number_format((float) $donasi['legacy_usd_amount'], 2) . '</strong><br>';
+                echo '<small style="color: #666;">≈ Rp ' . number_format((float) $donasi['total_amount'], 0, ',', '.') . '</small>';
             } else {
-                echo '<strong style="color: #2271b1;">Rp ' . number_format($donasi['gross_amount'], 0, ',', '.') . '</strong>';
+                echo '<strong style="color: #2271b1;">Rp ' . number_format((float) $donasi['total_amount'], 0, ',', '.') . '</strong>';
             }
 
             if ($donasi['payment_type']) {
-                echo '<br><small style="color: #666;">via ' . strtoupper($donasi['payment_type']);
-                if ($donasi['bank']) {
-                    echo ' (' . strtoupper($donasi['bank']) . ')';
-                }
-                echo '</small>';
+                echo '<br><small style="color: #666;">via ' . strtoupper($donasi['payment_type']) . '</small>';
             }
             echo '</div>';
             echo '</td>';
@@ -545,22 +640,27 @@ class YIARI_Admin_Module {
             echo '<div class="shipping-block">';
             if ($donasi['address']) {
                 echo '<small>📍 ' . esc_html($donasi['city'] ?: 'No city') . ', ' . esc_html($donasi['province'] ?: 'No province') . '</small><br>';
-                echo '<small>Shipping: Rp ' . number_format($donasi['shipping_cost'] ?: 0, 0, ',', '.') . '</small>';
+                if (($donasi['currency'] ?? 'IDR') === 'USD' && !empty($donasi['legacy_exchange_rate'])) {
+                    echo '<small>Shipping: $' . number_format((float) ($donasi['shipping_amount'] ?: 0) * (float) $donasi['legacy_exchange_rate'], 2) . '</small>';
+                } else {
+                    echo '<small>Shipping: Rp ' . number_format((float) ($donasi['shipping_amount'] ?: 0), 0, ',', '.') . '</small>';
+                }
             }
 
             // Order status
-            $order_status = $donasi['order_status'] ?? 'processing';
+            $order_status = $donasi['fulfillment_status'] ?? 'draft';
             $order_status_icon = '';
             $order_status_color = '';
             switch (strtolower($order_status)) {
-                case 'processing':
+                case 'draft':
                     $order_status_icon = '📦';
                     $order_status_color = '#f39c12';
                     break;
-                case 'packed':
-                    $order_status_icon = '📋';
+                case 'paid':
+                    $order_status_icon = '💳';
                     $order_status_color = '#3498db';
                     break;
+                case 'awb_created':
                 case 'shipped':
                     $order_status_icon = '🚚';
                     $order_status_color = '#9b59b6';
@@ -587,28 +687,31 @@ class YIARI_Admin_Module {
             // Column 5: Actions
             echo '<td class="col-actions">';
             echo '<div class="action-buttons" style="display: flex; gap: 5px; flex-direction: column;">';
+            $legacy_transaction_id = intval($donasi['legacy_transaction_id'] ?? 0);
 
             // Check status button
             echo '<button class="button button-small check-status-btn" data-order-id="' . esc_attr($donasi['order_id']) . '" style="font-size: 11px; height: 24px; line-height: 22px;">🔄 Check Status</button>';
 
             // View details modal button
-            echo '<button class="button button-small view-details-btn" data-transaction-id="' . esc_attr($donasi['id']) . '" style="font-size: 11px; height: 24px; line-height: 22px;">👁️ Details</button>';
+            if ($legacy_transaction_id > 0) {
+                echo '<button class="button button-small view-details-btn" data-transaction-id="' . esc_attr($legacy_transaction_id) . '" style="font-size: 11px; height: 24px; line-height: 22px;">👁️ Details</button>';
+            }
 
             // Order status update button (only for paid transactions)
-            $payment_status = strtolower($donasi['transaction_status']);
-            if (in_array($payment_status, ['settlement', 'capture'])) {
-                $current_order_status = $donasi['order_status'] ?? 'processing';
-                if ($current_order_status === 'processing') {
-                    echo '<button class="button button-small update-status-btn" data-transaction-id="' . esc_attr($donasi['id']) . '" data-current-status="' . esc_attr($current_order_status) . '" style="font-size: 11px; height: 24px; line-height: 22px; background: #2271b1; color: white;">📦 Update Status</button>';
-                } elseif ($current_order_status === 'delivering') {
-                    echo '<button class="button button-small update-status-btn" data-transaction-id="' . esc_attr($donasi['id']) . '" data-current-status="' . esc_attr($current_order_status) . '" style="font-size: 11px; height: 24px; line-height: 22px; background: #9b59b6; color: white;">🚚 Track Order</button>';
+            $payment_status = strtolower($donasi['payment_status']);
+            if ($legacy_transaction_id > 0 && $payment_status === 'paid') {
+                $current_order_status = $donasi['fulfillment_status'] ?? 'draft';
+                if (in_array($current_order_status, array('draft', 'paid'), true)) {
+                    echo '<button class="button button-small update-status-btn" data-transaction-id="' . esc_attr($legacy_transaction_id) . '" data-current-status="processing" style="font-size: 11px; height: 24px; line-height: 22px; background: #2271b1; color: white;">📦 Update Status</button>';
+                } elseif (in_array($current_order_status, array('awb_created', 'shipped'), true)) {
+                    echo '<button class="button button-small update-status-btn" data-transaction-id="' . esc_attr($legacy_transaction_id) . '" data-current-status="delivering" style="font-size: 11px; height: 24px; line-height: 22px; background: #9b59b6; color: white;">🚚 Track Order</button>';
                 }
             }
 
             // PDF download buttons (only for settled transactions)
-            if (in_array($payment_status, ['settlement', 'capture'])) {
-                echo '<button class="button button-small download-invoice-btn" data-transaction-id="' . esc_attr($donasi['id']) . '" style="font-size: 11px; height: 24px; line-height: 22px; background: #27ae60; color: white;">📄 Invoice</button>';
-                echo '<button class="button button-small download-packing-btn" data-transaction-id="' . esc_attr($donasi['id']) . '" style="font-size: 11px; height: 24px; line-height: 22px; background: #e67e22; color: white;">📋 Packing Slip</button>';
+            if ($legacy_transaction_id > 0 && $payment_status === 'paid') {
+                echo '<button class="button button-small download-invoice-btn" data-transaction-id="' . esc_attr($legacy_transaction_id) . '" style="font-size: 11px; height: 24px; line-height: 22px; background: #27ae60; color: white;">📄 Invoice</button>';
+                echo '<button class="button button-small download-packing-btn" data-transaction-id="' . esc_attr($legacy_transaction_id) . '" style="font-size: 11px; height: 24px; line-height: 22px; background: #e67e22; color: white;">📋 Packing Slip</button>';
             }
 
             echo '</div>';
@@ -2441,6 +2544,17 @@ class YIARI_Admin_Module {
             );
 
             if ($updated !== false) {
+                $order_service = new YIARI_Order_Service();
+                $order_service->sync_midtrans_callback(
+                    $order_id,
+                    array(
+                        'transaction_status' => $status->transaction_status,
+                        'transaction_id' => $status->transaction_id ?? null,
+                        'payment_type' => $status->payment_type ?? null,
+                        'fraud_status' => $status->fraud_status ?? null,
+                    )
+                );
+
                 wp_send_json_success(array(
                     'status' => $status->transaction_status,
                     'message' => 'Transaction status updated successfully',
@@ -2738,6 +2852,13 @@ class YIARI_Admin_Module {
         if ($updated !== false) {
             error_log("✅ Order status updated: Transaction ID $transaction_id -> $new_status");
 
+            $this->sync_normalized_fulfillment_from_admin(
+                $transaction->order_id,
+                $new_status,
+                $tracking_number,
+                $notes
+            );
+
             // Trigger email notification for status updates
             if ($new_status === 'delivering' && !empty($tracking_number)) {
                 // Get updated transaction data
@@ -2761,6 +2882,110 @@ class YIARI_Admin_Module {
             error_log("❌ Failed to update order status: " . $wpdb->last_error);
             wp_send_json_error(array('message' => 'Failed to update order status: ' . $wpdb->last_error));
         }
+    }
+
+    /**
+     * Keep normalized fulfillment state in sync with legacy admin actions.
+     *
+     * @param string $order_number
+     * @param string $legacy_status
+     * @param string $tracking_number
+     * @param string $notes
+     * @return void
+     */
+    private function sync_normalized_fulfillment_from_admin($order_number, $legacy_status, $tracking_number, $notes) {
+        global $wpdb;
+
+        $orders_table = $wpdb->prefix . 'yiari_orders';
+        $shipments_table = $wpdb->prefix . 'yiari_shipments';
+        $status_logs_table = $wpdb->prefix . 'yiari_order_status_logs';
+
+        $order = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT * FROM {$orders_table} WHERE order_number = %s LIMIT 1",
+                $order_number
+            )
+        );
+
+        if (!$order) {
+            return;
+        }
+
+        $normalized_status = 'paid';
+        if ($legacy_status === 'delivering') {
+            $normalized_status = 'shipped';
+        } elseif ($legacy_status === 'delivered') {
+            $normalized_status = 'delivered';
+        }
+
+        $wpdb->update(
+            $orders_table,
+            array(
+                'fulfillment_status' => $normalized_status,
+                'updated_at' => current_time('mysql'),
+            ),
+            array('id' => $order->id),
+            array('%s', '%s'),
+            array('%d')
+        );
+
+        if (!empty($tracking_number)) {
+            $shipment = $wpdb->get_row(
+                $wpdb->prepare(
+                    "SELECT id FROM {$shipments_table} WHERE order_id = %d ORDER BY id DESC LIMIT 1",
+                    $order->id
+                )
+            );
+
+            $shipment_data = array(
+                'tracking_number' => $tracking_number,
+                'shipment_status' => $normalized_status,
+                'updated_at' => current_time('mysql'),
+            );
+
+            if ($shipment) {
+                $wpdb->update(
+                    $shipments_table,
+                    $shipment_data,
+                    array('id' => $shipment->id),
+                    array('%s', '%s', '%s'),
+                    array('%d')
+                );
+            } else {
+                $wpdb->insert(
+                    $shipments_table,
+                    array(
+                        'order_id' => $order->id,
+                        'provider' => 'legacy_manual',
+                        'tracking_number' => $tracking_number,
+                        'shipment_status' => $normalized_status,
+                        'created_at' => current_time('mysql'),
+                        'updated_at' => current_time('mysql'),
+                    ),
+                    array('%d', '%s', '%s', '%s', '%s', '%s')
+                );
+            }
+        }
+
+        $wpdb->insert(
+            $status_logs_table,
+            array(
+                'order_id' => $order->id,
+                'source' => 'admin_manual',
+                'status_type' => 'fulfillment',
+                'previous_status' => $order->fulfillment_status,
+                'new_status' => $normalized_status,
+                'message' => !empty($notes) ? $notes : 'Manual fulfillment update from admin screen',
+                'context_payload' => wp_json_encode(
+                    array(
+                        'legacy_status' => $legacy_status,
+                        'tracking_number' => $tracking_number,
+                    )
+                ),
+                'created_at' => current_time('mysql'),
+            ),
+            array('%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s')
+        );
     }
 
     /**
