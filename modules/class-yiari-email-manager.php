@@ -173,7 +173,7 @@ class YIARI_Email_Manager {
                 <div class="header">
                     <h1>🐒 YIARI Foundation</h1>
                     <h2>Order Confirmation</h2>
-                    <p>Thank you for supporting slow loris conservation!</p>
+                    <p>Thank you for supporting YIARI through your order and donation.</p>
                 </div>
 
                 <div class="content">
@@ -190,7 +190,7 @@ class YIARI_Email_Manager {
                     </div>
 
                     <div class="order-summary">
-                        <h3>🐒 Items Ordered</h3>
+                        <h3>📦 Items Ordered</h3>
                         <table class="items-table">
                             <thead>
                                 <tr>
@@ -214,7 +214,7 @@ class YIARI_Email_Manager {
                                         $subtotal += $total;
 
                                         echo '<tr>';
-                                        echo '<td>' . esc_html($doll->name) . ' Slow Loris Doll</td>';
+                                        echo '<td>' . esc_html($doll->name) . '</td>';
                                         echo '<td>' . $qty . '</td>';
                                         echo '<td>' . ($use_usd ? '$' . number_format($unit_price, 2) : 'Rp ' . number_format($unit_price, 0, ',', '.')) . '</td>';
                                         echo '<td>' . ($use_usd ? '$' . number_format($total, 2) : 'Rp ' . number_format($total, 0, ',', '.')) . '</td>';
@@ -263,8 +263,8 @@ class YIARI_Email_Manager {
                 </div>
 
                 <div class="footer">
-                    <p>🌱 This symbolic adoption helps protect slow lorises in the wild.</p>
-                    <p>YIARI Foundation - Slow Loris Conservation</p>
+                    <p>🌱 Your support helps fund YIARI programs and product-based fundraising.</p>
+                    <p>YIARI Foundation</p>
                     <p>Email: info@yiari.or.id | Website: www.yiari.or.id</p>
                     <p><em>If you have any questions, please contact our support team.</em></p>
                 </div>
@@ -310,27 +310,27 @@ class YIARI_Email_Manager {
                         <h3>✅ Order Status: Processing</h3>
                         <p><strong>Order #:</strong> <?php echo esc_html($transaction->order_id); ?></p>
                         <p>Thank you! Your payment has been successfully received.</p>
-                        <p>We are now preparing your slow loris adoption package for shipment.</p>
+                        <p>We are now preparing your order for shipment.</p>
                     </div>
 
                     <p>Dear <?php echo esc_html($transaction->customer_name); ?>,</p>
 
-                    <p>Great news! Your payment for the slow loris adoption has been confirmed and your order is now being processed.</p>
+                    <p>Great news! Your payment has been confirmed and your order is now being processed.</p>
 
                     <p><strong>What happens next?</strong></p>
                     <ul>
-                        <li>📦 We will carefully prepare your adoption package</li>
+                        <li>📦 We will carefully prepare your order</li>
                         <li>🚚 Your order will be shipped via JNE REG</li>
                         <li>📧 You'll receive tracking information once shipped</li>
                         <li>🏠 Delivery typically takes 2-3 business days</li>
                     </ul>
 
-                    <p>Your support helps us continue our vital work protecting slow lorises in their natural habitat. Thank you for making a difference!</p>
+                    <p>Your support helps us continue our conservation and education work. Thank you for making a difference.</p>
                 </div>
 
                 <div class="footer">
-                    <p>🌱 Together we're protecting slow lorises for future generations.</p>
-                    <p>YIARI Foundation - Slow Loris Conservation</p>
+                    <p>🌱 Together we can expand YIARI's conservation impact.</p>
+                    <p>YIARI Foundation</p>
                     <p>Email: info@yiari.or.id | Website: www.yiari.or.id</p>
                 </div>
             </div>
@@ -386,7 +386,7 @@ class YIARI_Email_Manager {
 
                     <p>Dear <?php echo esc_html($transaction->customer_name); ?>,</p>
 
-                    <p>Exciting news! Your slow loris adoption package has been shipped and is now on its way to you.</p>
+                    <p>Exciting news! Your order has been shipped and is now on its way to you.</p>
 
                     <p><strong>Shipping Details:</strong></p>
                     <ul>
@@ -407,14 +407,14 @@ class YIARI_Email_Manager {
                         <li>View real-time delivery updates</li>
                     </ol>
 
-                    <p>Your adoption package includes your symbolic slow loris doll and information about the conservation work your support enables.</p>
+                    <p>Your package contains the product(s) you ordered and supports the conservation work carried out by YIARI.</p>
 
-                    <p>Thank you for your commitment to slow loris conservation! 🌱</p>
+                    <p>Thank you for supporting YIARI. 🌱</p>
                 </div>
 
                 <div class="footer">
-                    <p>🌱 Your support is making a real difference for slow lorises in the wild.</p>
-                    <p>YIARI Foundation - Slow Loris Conservation</p>
+                    <p>🌱 Your support is making a real difference for YIARI's field and education work.</p>
+                    <p>YIARI Foundation</p>
                     <p>Email: info@yiari.or.id | Website: www.yiari.or.id</p>
                     <p><em>Questions about your delivery? Contact us anytime.</em></p>
                 </div>
@@ -459,14 +459,14 @@ class YIARI_Email_Manager {
                     <div class="delivery-confirmation">
                         <h3>✅ Delivery Confirmed</h3>
                         <p><strong>Order #:</strong> <?php echo esc_html($transaction->order_id); ?></p>
-                        <p>Your slow loris adoption package has been successfully delivered!</p>
+                        <p>Your order has been successfully delivered.</p>
                     </div>
 
                     <p>Dear <?php echo esc_html($transaction->customer_name); ?>,</p>
 
-                    <p>Congratulations! Your slow loris adoption package has been delivered to your address.</p>
+                    <p>Congratulations! Your order has been delivered to your address.</p>
 
-                    <p>We hope you love your symbolic slow loris doll and the information about the important conservation work you're supporting.</p>
+                    <p>We hope you are pleased with your order and the impact your support creates for YIARI.</p>
 
                     <p><strong>Your Impact:</strong></p>
                     <ul>
@@ -476,14 +476,14 @@ class YIARI_Email_Manager {
                         <li>🏥 Helping rescue and rehabilitation efforts</li>
                     </ul>
 
-                    <p>Thank you for being a slow loris conservation hero! Your support directly contributes to protecting these amazing primates for future generations.</p>
+                    <p>Thank you for being part of YIARI's supporter community. Your support directly contributes to ongoing conservation and education work.</p>
 
                     <p>Stay connected with us for updates on the conservation work you're supporting!</p>
                 </div>
 
                 <div class="footer">
-                    <p>🌱 Because of supporters like you, slow lorises have a brighter future.</p>
-                    <p>YIARI Foundation - Slow Loris Conservation</p>
+                    <p>🌱 Because of supporters like you, YIARI can keep growing its impact.</p>
+                    <p>YIARI Foundation</p>
                     <p>Email: info@yiari.or.id | Website: www.yiari.or.id</p>
                     <p><em>Follow our work on social media to see your impact in action!</em></p>
                 </div>
@@ -538,12 +538,12 @@ class YIARI_Email_Manager {
 
                     <p>If you have any questions about your order, please don't hesitate to contact us.</p>
 
-                    <p>Thank you for supporting slow loris conservation!</p>
+                    <p>Thank you for supporting YIARI.</p>
                 </div>
 
                 <div class="footer">
-                    <p>🌱 Your support helps protect slow lorises in the wild.</p>
-                    <p>YIARI Foundation - Slow Loris Conservation</p>
+                    <p>🌱 Your support helps advance YIARI conservation programs.</p>
+                    <p>YIARI Foundation</p>
                     <p>Email: info@yiari.or.id | Website: www.yiari.or.id</p>
                 </div>
             </div>

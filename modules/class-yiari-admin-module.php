@@ -3034,9 +3034,9 @@ class YIARI_Admin_Module {
             <div style="clear: both;"></div>
 
             <div class="footer">
-                <p>Thank you for supporting slow loris conservation!</p>
+                <p>Thank you for supporting YIARI through this order.</p>
                 <p>This invoice was generated on <?php echo date('d/m/Y H:i:s'); ?></p>
-                <p><em>Note: This adoption is symbolic and contributes to slow loris conservation efforts.</em></p>
+                <p><em>Note: This order contributes to YIARI fundraising and program support.</em></p>
             </div>
 
             <script>
@@ -3092,7 +3092,7 @@ class YIARI_Admin_Module {
                 <h1>PACKING SLIP</h1>
                 <div class="company-info">
                     <h2>YIARI Foundation</h2>
-                    <p>Slow Loris Conservation Organization</p>
+                    <p>Conservation and fundraising organization</p>
                 </div>
             </div>
 
@@ -3143,7 +3143,7 @@ class YIARI_Admin_Module {
 
                                 if ($qty > 0) {
                                     echo '<tr>';
-                                    echo '<td><strong>' . esc_html($doll->name) . ' Slow Loris Doll</strong><br><small>' . esc_html($doll->description ?: 'Adoption doll for conservation support') . '</small></td>';
+                                    echo '<td><strong>' . esc_html($doll->name) . '</strong><br><small>' . esc_html($doll->description ?: 'Product item for supporter fulfillment') . '</small></td>';
                                     echo '<td style="text-align: center; font-size: 16px; font-weight: bold;">' . $qty . '</td>';
                                     echo '<td style="border-left: 3px solid #ddd; background: #f9f9f9;"></td>';
                                     echo '</tr>';
@@ -3166,7 +3166,7 @@ class YIARI_Admin_Module {
             <?php endif; ?>
 
             <div class="footer">
-                <p>Please verify all items before shipping. Thank you for supporting slow loris conservation!</p>
+                <p>Please verify all items before shipping. Thank you for supporting YIARI.</p>
                 <p>Packing slip generated on <?php echo date('d/m/Y H:i:s'); ?></p>
             </div>
 

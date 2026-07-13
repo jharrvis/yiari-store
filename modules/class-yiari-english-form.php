@@ -95,7 +95,7 @@ class YIARI_English_Form {
 ">
     <div class="form-header" style="text-align: center; margin-bottom: 40px;">
         <h2 style="color: white; margin: 0 0 10px 0; font-size: 28px; font-weight: 300; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">Donor Information</h2>
-        <p style="color: rgba(255,255,255,0.9); font-size: 16px; margin: 0; text-shadow: 0 1px 2px rgba(0,0,0,0.3);">Complete the following data for slow loris doll adoption process</p>
+        <p style="color: rgba(255,255,255,0.9); font-size: 16px; margin: 0; text-shadow: 0 1px 2px rgba(0,0,0,0.3);">Complete the following data for your product order and donation</p>
     </div>
     
     <form id="donasiKukangFormEn" class="donasi-form" style="max-width: 800px; margin: 0 auto;">
@@ -1132,7 +1132,7 @@ class YIARI_English_Form {
         }
 
         if (!hasSelection) {
-            alert('Please select at least 1 slow loris doll to adopt.');
+            alert('Please select at least 1 product.');
             return false;
         }
 
