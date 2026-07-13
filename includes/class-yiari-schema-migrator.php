@@ -8,7 +8,7 @@ class YIARI_Schema_Migrator {
     /**
      * Version marker for schema migrations managed by this class.
      */
-    const SCHEMA_VERSION = '2026-07-13-01';
+    const SCHEMA_VERSION = '2026-07-13-02';
 
     /**
      * Option key used to persist the installed schema version.
@@ -46,6 +46,7 @@ class YIARI_Schema_Migrator {
 
         $sql_products = "CREATE TABLE {$products_table} (
             id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            legacy_product_id BIGINT UNSIGNED NULL,
             sku VARCHAR(64) NOT NULL,
             slug VARCHAR(120) NOT NULL,
             name VARCHAR(190) NOT NULL,
@@ -66,6 +67,7 @@ class YIARI_Schema_Migrator {
             created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY  (id),
+            UNIQUE KEY legacy_product_id (legacy_product_id),
             UNIQUE KEY sku (sku),
             UNIQUE KEY slug (slug),
             KEY product_type (product_type),

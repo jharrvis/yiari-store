@@ -121,6 +121,10 @@ class YIARI_Donasi_Kukang_Loader {
         $schema_migrator = new YIARI_Schema_Migrator();
         $schema_migrator->maybe_migrate();
 
+        // Migrate legacy kukang data into the normalized schema idempotently.
+        $legacy_data_migrator = new YIARI_Legacy_Data_Migrator();
+        $legacy_data_migrator->maybe_migrate();
+
         // Initialize database
         $database_manager = new YIARI_Database_Manager();
         $database_manager->initialize();
@@ -154,6 +158,7 @@ class YIARI_Donasi_Kukang_Loader {
     private function load_dependencies() {
         // Load required core modules
         require_once YIARI_DONASI_KUKANG_PATH . 'includes/class-yiari-schema-migrator.php';
+        require_once YIARI_DONASI_KUKANG_PATH . 'includes/class-yiari-legacy-data-migrator.php';
         require_once YIARI_DONASI_KUKANG_PATH . 'modules/class-yiari-database-manager.php';
         require_once YIARI_DONASI_KUKANG_PATH . 'modules/class-yiari-currency-manager.php';
         require_once YIARI_DONASI_KUKANG_PATH . 'modules/class-yiari-shipping-manager.php';

@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Repository operating standard in `AGENTS.md` covering transaction safety, auditability, WordPress security, changelog discipline, and GitHub workflow.
 - Repository-local skill `.codex/skills/yiari-wordpress-plugin-dev/SKILL.md` for consistent plugin development practices in this project.
+- Legacy data migrator for copying `kukang_dolls_new` and `kukang_transactions_new` into the normalized YIARI tables without deleting old data.
 
 ### Changed
 - Updated implementation plans to support book purchase plus donated-book flow and donation motivation capture.
