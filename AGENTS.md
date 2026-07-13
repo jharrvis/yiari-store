@@ -1,25 +1,55 @@
 # Repository Guidelines
 
+## Operating Standard
+This plugin handles donations, payments, shipping, donor data, and fulfillment. Every change must optimize for transaction safety first, operational traceability second, and feature speed third. If a tradeoff appears, prefer the safer and more auditable path.
+
 ## Project Structure & Module Organization
-This repository is a WordPress plugin for YIARI donations and Midtrans payments. The bootstrap file is `yiari-donasi-kukang.php`. Core runtime logic lives in `modules/` with `YIARI_*` classes such as `class-yiari-payment-manager.php`, `class-yiari-form-manager.php`, and `class-yiari-public-module.php`. Shared bootstrap and lifecycle code lives in `includes/`, helper functions and AJAX handlers live in `helpers/`, browser assets are in `css/` and `js/`, and optional UI pieces are under `admin/`, `public/`, and `widgets/`. Third-party code is vendored in `vendor/` and `midtrans-php-master/`; avoid editing those directly.
+- `yiari-donasi-kukang.php` is the current bootstrap entry.
+- `includes/` contains loader and lifecycle code.
+- `modules/` contains runtime business logic. Legacy modules remain at the root of `modules/` during transition. New architecture should go into:
+  - `modules/catalog/`
+  - `modules/orders/`
+  - `modules/payments/`
+  - `modules/shipping/`
+  - `modules/notifications/`
+  - `modules/legacy/`
+- `helpers/` is for small stateless helpers only.
+- `css/`, `js/`, `admin/`, `public/`, and `widgets/` hold UI assets and presentation code.
+- `plan/` stores active implementation plans. `docs/` stores reports, notes, and audits.
 
-## Build, Test, and Development Commands
-There is no root build pipeline. Typical checks are manual and WordPress-based:
+## Development Priorities
+1. Keep payment and fulfillment flows correct, idempotent, and observable.
+2. Preserve a professional donor ledger: order values, donation intent, payment state, shipment state, and notification state must be traceable.
+3. Follow WordPress standards for hooks, sanitization, escaping, capability checks, nonce validation, and database access.
+4. Update `CHANGELOG.md` for every material code, schema, workflow, or documentation change.
+5. Keep Git history clean and push through GitHub regularly.
 
-- `php -l yiari-donasi-kukang.php` checks syntax for a changed file.
-- `find . -name '*.php' -not -path './vendor/*' -not -path './midtrans-php-master/*' -exec php -l {} \\;` runs a broad syntax pass.
-- Open `/wp-content/plugins/yiari_donasi_midtrans/test_form.php` in a local WordPress install to exercise the shortcode UI.
-- Open `/wp-content/plugins/yiari_donasi_midtrans/test_functionality.php` inside WordPress to verify shortcodes, tables, AJAX hooks, and currency helpers.
-- `php midtrans-php-master/vendor/bin/phpunit -c midtrans-php-master/phpunit.xml` is only for the bundled Midtrans library, not the plugin itself.
+## Build, Test, and Validation
+- `php -l path/to/file.php` for targeted syntax checks.
+- `find . -name '*.php' -not -path './vendor/*' -not -path './midtrans-php-master/*' -exec php -l {} \\;` for broad syntax validation.
+- `test_form.php` and `test_functionality.php` must be kept runnable in WordPress context for manual regression checks.
+- Before merging payment, shipping, or order changes, validate:
+  - checkout creation
+  - Midtrans callback handling
+  - order idempotency
+  - shipment creation rules
+  - email/certificate triggers
 
-## Coding Style & Naming Conventions
-Follow the existing PHP style: 4-space indentation, brace-on-same-line for classes and methods, and WordPress-style arrays like `array(...)`. Plugin classes use the `YIARI_` prefix and map to `class-yiari-*.php` filenames. Keep new helpers in `helpers/`, not the bootstrap file. Match existing asset naming such as `donation-form.js` and `donation-form.css`.
+## Security Rules
+- Never commit live secrets, API keys, database credentials, or production payload dumps.
+- Sanitize all request input with WordPress helpers and escape all output.
+- Verify nonces and capabilities on every admin or AJAX write action.
+- Treat Midtrans and KiriminAja callbacks as untrusted input; validate signatures or callback authenticity where supported.
+- Make external side effects idempotent. A repeated callback must not duplicate payment records, shipments, emails, or certificates.
 
-## Testing Guidelines
-Add or update focused PHP test pages when behavior changes. Name repo-level checks `test_*.php` and keep them runnable in a WordPress context. Validate both Indonesian and English flows, IDR/USD handling, Midtrans callbacks, and any table or shortcode changes.
+## Changelog & Version Control
+- Use `CHANGELOG.md` with Keep a Changelog structure.
+- Add entries under `Unreleased` while work is in progress.
+- Commit subjects should be short and imperative, for example `Add shipment state log table`.
+- Push changes to GitHub after each meaningful checkpoint, especially plan updates, schema work, and transaction-flow changes.
 
-## Commit & Pull Request Guidelines
-`master` currently has no commits, so there is no established history to mirror. Use short imperative commit subjects such as `Fix USD conversion rounding` or `Add admin exchange rate check`. PRs should include a summary, affected shortcodes or admin screens, setup or migration notes, and screenshots for UI changes. Call out any config dependencies on Midtrans, Biteship, or exchange-rate services.
-
-## Security & Configuration Tips
-Do not commit live API keys or WordPress secrets. Keep environment-specific debugging in local-only files, and sanitize all AJAX inputs using WordPress helpers before touching payment, donor, or shipping data.
+## Professional Workflow
+- Backup before schema or flow changes.
+- Write migration paths before deleting legacy data structures.
+- Prefer normalized tables for orders, order items, shipments, and audit logs.
+- If requirements are ambiguous, choose the model that improves reporting, reconciliation, and rollback safety.

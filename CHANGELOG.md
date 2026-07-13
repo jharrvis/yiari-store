@@ -5,6 +5,16 @@ All notable changes to YIARI Donasi Kukang Plugin will be documented in this fil
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Repository operating standard in `AGENTS.md` covering transaction safety, auditability, WordPress security, changelog discipline, and GitHub workflow.
+- Repository-local skill `.codex/skills/yiari-wordpress-plugin-dev/SKILL.md` for consistent plugin development practices in this project.
+
+### Changed
+- Updated implementation plans to support book purchase plus donated-book flow and donation motivation capture.
+- Elevated repository guidance to require changelog updates for all material code, schema, workflow, and documentation changes.
+
 ## [3.1.1] - 2025-09-26
 
 ### Fixed

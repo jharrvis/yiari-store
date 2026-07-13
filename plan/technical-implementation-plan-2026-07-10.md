@@ -40,9 +40,21 @@ Tabel baru yang disarankan:
 
 Data penting:
 - product: sku, nama, harga, stok, berat, dimensi, status, gambar
-- order: nomor order, donor, alamat, currency, subtotal, shipping, total, payment status, fulfillment status
-- order item: product_id, sku_snapshot, qty, price_snapshot, weight_snapshot
+- order: nomor order, donor, alamat, currency, subtotal, shipping, total, payment status, fulfillment status, motivation data
+- order item: product_id, sku_snapshot, qty, price_snapshot, weight_snapshot, fulfillment_type
 - shipment: courier, service_type, shipping_cost, order_id, awb, tracking_url, request/response log
+
+Tambahan field yang disarankan:
+- `orders`:
+  - `donation_book_count`
+  - `self_book_count`
+  - `contains_donation_items`
+  - `donation_motivation_code`
+  - `donation_motivation_other`
+- `order_items`:
+  - `fulfillment_type` dengan nilai `self_purchase` atau `donation_purchase`
+  - `requires_shipping`
+  - `donation_recipient_type` untuk saat ini default `yiari`
 
 ## Mapping File Saat Ini ke Implementasi Baru
 - `modules/class-yiari-database-manager.php`
@@ -75,10 +87,24 @@ Data penting:
 ### Phase 2. Product Catalog
 - buat repository dan admin CRUD produk
 - ubah front-end agar membaca item dari katalog, bukan hardcoded boneka
+- untuk produk buku, pertahankan satu produk utama dan biarkan checkout yang membentuk dua jenis item order
 
 ### Phase 3. Orders
 - buat order aggregate baru
 - simpan item order secara snapshot, bukan bergantung ke harga produk saat ini
+- implementasikan dua jalur item order:
+  - `self_purchase`: dibayar donor, dikirim ke donor
+  - `donation_purchase`: dibayar donor, tidak dikirim ke donor, dicatat sebagai donasi buku melalui YIARI
+- shipping calculator hanya menghitung item dengan `requires_shipping = 1`
+- order summary harus memisahkan:
+  - subtotal buku untuk diri sendiri
+  - subtotal buku donasi
+  - total shipping
+  - total keseluruhan
+- tambahkan validasi form untuk pertanyaan motivasi:
+  - pilihan ganda wajib diisi
+  - field teks `other` wajib jika pilihan adalah `lainnya`
+- simpan motivasi di level order, bukan order item, karena motivasi terkait donor/order secara keseluruhan
 
 ### Phase 4. Midtrans
 - bersihkan gateway lain
@@ -94,6 +120,11 @@ Data penting:
 ### Phase 6. Notification & Certificate
 - generate sertifikat dari template
 - kirim email ke donor dan admin setelah AWB tersedia
+- jika ada `donation_purchase`, sertifikat mengambil total buku donasi dan identitas donor dari order
+- email admin perlu memuat ringkasan:
+  - jumlah buku dikirim ke donor
+  - jumlah buku didonasikan melalui YIARI
+  - apakah order butuh shipment atau hanya donasi
 
 ### Phase 7. Legacy Cleanup
 - pindahkan kode lama ke `modules/legacy/`
@@ -103,6 +134,8 @@ Data penting:
 - export Excel tetap opsional sebagai fallback admin, bukan primary flow
 - tracking tetap punya fallback polling bila webhook KiriminAja terlambat/gagal
 - semua request API penting wajib dilog dengan masking secret
+- laporan admin harus punya agregasi terpisah antara `self_purchase` dan `donation_purchase`
+- laporan admin perlu bisa menampilkan breakdown motivasi donasi berdasarkan `donation_motivation_code`
 
 ## Data/Access yang Dibutuhkan
 - Midtrans sandbox + production keys
@@ -116,6 +149,8 @@ Data penting:
 ## Definisi Selesai
 - produk sudah generik
 - checkout membaca katalog baru
+- checkout buku bisa mencatat item untuk diri sendiri dan item donasi dalam satu order
+- checkout menangkap motivasi donasi dan menyimpan opsi `lainnya` bila diisi
 - settlement Midtrans memicu shipment KiriminAja
 - AWB, tracking, email, dan sertifikat berjalan otomatis
 - data lama termigrasi
