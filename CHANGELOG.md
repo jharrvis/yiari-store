@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated implementation plans to support book purchase plus donated-book flow and donation motivation capture.
 - Elevated repository guidance to require changelog updates for all material code, schema, workflow, and documentation changes.
 
+### Added
+- Next-generation schema migrator for normalized `products`, `orders`, `order_items`, `shipments`, and `order_status_logs` tables without removing legacy tables yet.
+
 ## [3.1.1] - 2025-09-26
 
 ### Fixed
